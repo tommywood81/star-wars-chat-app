@@ -12,10 +12,19 @@ from .data_processor import DialogueProcessor
 from .embeddings import StarWarsEmbedder
 from .retrieval import DialogueRetriever
 from .app import StarWarsRAGApp
+from .chat import StarWarsChatApp
+from .llm import LocalLLM, create_llm
+from .prompt import StarWarsPromptBuilder
+from .models import ModelManager
 
 __all__ = [
     "DialogueProcessor",
     "StarWarsEmbedder", 
     "DialogueRetriever",
-    "StarWarsRAGApp"
+    "StarWarsRAGApp",
+    "StarWarsChatApp",
+    "LocalLLM",
+    "create_llm",
+    "StarWarsPromptBuilder",
+    "ModelManager"
 ]
