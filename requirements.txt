@@ -1,0 +1,20 @@
+# Core dependencies
+pandas>=1.5.0
+numpy>=1.21.0
+sentence-transformers>=2.2.0
+torch>=1.12.0
+scikit-learn>=1.1.0
+
+# Development and testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+black>=22.0.0
+flake8>=5.0.0
+mypy>=0.991
+
+# Optional visualization
+matplotlib>=3.5.0
+seaborn>=0.11.0
+
+# Note: pathlib and logging are built-in Python modules
