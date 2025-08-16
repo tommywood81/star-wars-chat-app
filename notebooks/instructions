@@ -1,0 +1,270 @@
+Star Wars RAG Chat App — Production Pipeline Plan
+===============================================
+
+Goal
+----
+Build a production-grade RAG (Retrieval-Augmented Generation) Star Wars character chat app that runs on a DigitalOcean droplet (4GB RAM, ~60GB disk), hosts a quantized local LLM, and uses a vector-backed retrieval layer (Postgres + pgvector). Start with a notebook prototype, convert to modular code, and deploy in Docker. Design so voice (mic + STT + TTS) can be added later via adapters.
+
+High-Level Architecture
+-----------------------
+1. Frontend (React/Vue or plain JS)
+- Chat UI (message list, input, character selector).
+- Optional mic control & audio playback (added later).
+- Communicates with backend via REST (POST /chat) and optionally WebSocket or SSE for streaming.
+2. Backend (FastAPI recommended)
+- Endpoints: POST /chat, POST /chat/stream (SSE/WebSocket), POST /embed (admin), GET /health, GET /metrics.
+- Main modules:
+- db.py — Postgres + pgvector access
+- embeddings.py — embedding generation and model wrapper
+- retriever.py — retrieval & post-filtering logic
+- prompt.py — templates, few-shot examples, safety filters
+- llm.py — llama.cpp / llama-cpp-python wrapper for local LLM
+- audio_adapters/ — stt_client.py, tts_client.py (added later)
+- workers.py — background jobs (re-embed, reindex)
+3. Vector DB: PostgreSQL + pgvector extension
+- Stores lines, metadata, and embedding vectors (vector(384) or vector(768) depending on embedding model).
+4. Local LLM: Quantized Phi-2 or other compact model via llama.cpp
+- Convert to GGUF q4 format for CPU inference.
+- Keep model size and memory usage tuned for 4GB droplet (choose smaller model if needed).
+5. Optional components:
+- Redis for caching short term (session state, rate-limiting).
+- nginx reverse proxy + certbot for TLS.
+- systemd / docker-compose for process management.
+
+Data Preparation & Indexing
+---------------------------
+1. Collect and clean scripts:
+- Put raw scripts under data/scripts/*.txt.
+- Normalize: split into character/dialogue pairs, remove stage directions, keep metadata (movie, scene).
+- Example CSV columns: id, movie, scene, character, line, cleaned_line.
+2. Embedding model:
+- Use a small CPU-friendly model, e.g., sentence-transformers "all-MiniLM-L6-v2" (384-dim).
+- Batch embed lines offline (do not embed per-request).
+3. Insert into Postgres:
+- Create table with pgvector column (vector(384)).
+- Insert each line with associated metadata and embedding.
+- If dataset is small, this will be very fast and compact.
+4. Table example (Postgres + pgvector):
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE TABLE lines (
+id SERIAL PRIMARY KEY,
+movie TEXT,
+scene TEXT,
+character TEXT,
+line TEXT,
+embedding vector(384)
+);
+5. Indexing:
+- Create an index on embedding for faster queries:
+CREATE INDEX idx_lines_embedding ON lines USING ivfflat (embedding) WITH (lists = 100);
+- For small datasets you can omit ivfflat and do exact search.
+
+Retrieval Strategy (RAG)
+------------------------
+1. Flow when a user message arrives:
+- Embed the user message using same embed model used to index lines.
+- Query Postgres for top-K nearest neighbors:
+SELECT id, movie, character, line
+FROM lines
+ORDER BY embedding <-> %s
+LIMIT 8;
+- Apply post-filters: remove duplicates, filter out too-short lines, optionally boost lines from the selected character.
+2. Context assembly:
+- Choose N lines to fit LLM prompt token limit (e.g., 1024 or 2048 tokens depending on model).
+- Concatenate lines in sensible order; include metadata if helpful (movie/scene).
+3. Safety filter:
+- Optionally scan retrieved lines for offensive or disallowed content and redact them from context.
+
+Prompt Engineering
+------------------
+1. Prompt Template (example):
+You are {character_name} from Star Wars. Stay in character, use phrasing and manner appropriate to {character_name}. Do not reveal you are an AI. Use only the context below — do not invent facts beyond it.
+Context:
+{retrieved_lines_formatted}
+User: {user_message}
+{character_name}:
+2. Few-shot: optionally include 1–2 short Q/A examples to steer style.
+3. System-level constraints: max length, refusal behavior, profanity rules.
+4. Token budget: reserve tokens for prompt + response; calculate how many lines you can include accordingly.
+
+LLM Hosting (Local, CPU)
+------------------------
+1. Model selection:
+- Recommended: Phi-2 quantized (q4 GGUF) OR other ~1–3B compressed model that can run on CPU in ~2–4 GB.
+- If memory is too tight, use smaller models (1.1B–1.3B).
+2. Conversion & runtime:
+- Convert the model to GGUF/q4 using the model author's recommended tool or conversion script.
+- Run inference via llama.cpp or llama-cpp-python:
+from llama_cpp import Llama
+llm = Llama(model_path='models/phi-2-q4.gguf', n_ctx=2048)
+out = llm(prompt, max_tokens=200)
+3. Performance tuning:
+- Threads: limit threads to 1–2 on 4GB droplet to avoid OOM.
+- n_ctx: smaller context sizes reduce memory.
+- max_tokens: limit output length to keep memory/latency under control.
+4. Disk/Memory estimate:
+- Model: ~2–4GB (quantized).
+- Embeddings DB: ~100–300MB.
+- App code + deps: ~200–500MB.
+- Total comfortably under 15GB; aim for <8GB live usage.
+
+Notebook → Modules Transition
+-----------------------------
+1. Notebook Stage (prototype):
+- Cells: load/clean, embed lines, insert to DB, retrieval, prompt build, LLM call.
+- Keep functions small and testable.
+2. Refactor into modules:
+- data_loader.py: load_scripts(), clean_line()
+- embeddings.py: get_embed_model(), embed_batch(), embed_text()
+- db.py: connect_db(), insert_lines(), query_nearest(user_emb, k)
+- retriever.py: retrieve_context(user_msg, character=None)
+- prompt.py: build_prompt(character, user_msg, retrieved_lines)
+- llm.py: LLM class (init, generate(prompt), stream_generate(prompt))
+- api.py / main.py: FastAPI app exposing endpoints
+3. Tests:
+- Unit tests for retrieval quality, prompt formatting, embedding shape, and LLM wrapper (mock LLM for speed).
+- Integration test: end-to-end chat with a few sample prompts.
+
+API Endpoints (suggested)
+-------------------------
+POST /chat
+Request body:
+{
+"character": "Yoda",
+"text": "How do I learn the Force?",
+"session_id": "session-abc-123"
+}
+Server flow:
+- embed user text
+- retrieve top-K lines
+- build prompt
+- call LLM.generate(prompt)
+- return { "reply": "...", "used_lines": [{id, movie, line}], "meta": {latency_ms, tokens_used}}
+
+POST /chat/stream (optional)
+- SSE or WebSocket to stream LLM output tokens to frontend.
+
+POST /admin/reindex
+- Trigger offline re-embedding job (auth-protected).
+
+GET /health
+- Return model loaded, DB reachable, last-embed-time.
+
+Deployment & Docker
+-------------------
+1. Dockerfile (backend):
+- Use slim Python base (python:3.11-slim).
+- Install system deps (build-essential if compiling, libopenblas for embeddings, libsndfile if audio later).
+- Install python deps: fastapi, uvicorn, llama-cpp-python, sentence-transformers, psycopg2-binary, pgvector client lib.
+2. docker-compose.yml:
+services:
+web:
+build: .
+ports: ["8000:8000"]
+volumes: ["./models:/app/models", "./data:/app/data"]
+environment: [POSTGRES_URL, ...]
+postgres:
+image: postgres:15
+volumes: [pgdata:/var/lib/postgresql/data]
+environment: [POSTGRES_PASSWORD, POSTGRES_USER, POSTGRES_DB]
+redis: (optional)
+3. Volumes:
+- store Postgres data on a persistent volume.
+- store model files in a mounted volume for easy updates.
+4. Resource limits:
+- Cap container memory usage in compose if needed.
+- Limit worker concurrency for main app to prevent multiple LLM instances launching.
+
+Security & Secrets
+------------------
+- Store secrets (API keys, DB passwords) in environment variables or Docker secrets — never in source control.
+- Protect administrative endpoints with an API key or auth.
+- Rate-limit requests per IP/session to prevent abuse and runaway costs.
+- Add request size limits and safe file upload handling if added.
+
+Logging, Monitoring & Maintenance
+---------------------------------
+- Structured JSON logs (timestamp, request_id, user_id/session_id, latency).
+- Health checks and Alerts:
+- /health should check DB connection and model load.
+- Simple alert if /health fails.
+- Backups:
+- Periodic pg_dump of Postgres to remote storage.
+- Backup model files separately (rsync to remote).
+- Metrics:
+- Expose Prometheus metrics: request_latencies, llm_latency, db_query_time.
+- Log rotation: use logrotate to keep logs under control.
+
+Voice Layer (Add Later — adapters pattern)
+------------------------------------------
+1. Frontend:
+- Use Web Audio API to capture mic audio; chunk and send via fetch or WebRTC.
+- Playback with `<audio>` element.
+2. Backend STT:
+- STT endpoint: POST /speech: accept audio → return text.
+- Options: Whisper (local or API), VOSK (local), or cloud STT for accuracy.
+- Output text is fed into the same /chat pipeline.
+3. Backend TTS:
+- After LLM returns text, optionally call a TTS engine (ElevenLabs, Amazon Polly, or local TTS).
+- Return audio stream or a URL for frontend playback.
+4. Design:
+- Core `/chat` receives only text (from UI or STT).
+- Standalone adapters (stt_client.py, tts_client.py) handle audio specifics; keep them replaceable.
+
+Operational Runbook (short)
+---------------------------
+- Deploy:
+- Build & push Docker image, docker-compose up -d
+- Check logs: docker-compose logs -f web
+- Check health: curl http://localhost:8000/health
+- If OOM or high latency:
+- Reduce LLM n_ctx, reduce max_tokens, reduce number of threads, or switch to smaller model.
+- Reindex scripts:
+- Run embedding job offline; replace data in DB or do incremental inserts.
+- Add new characters:
+- Add new script files, embed lines, and insert to DB; set character display names in frontend.
+
+Costs & Tradeoffs
+-----------------
+- Local hosting: No per-request LLM cost, but higher management overhead and increased latency.
+- RAG (no fine-tuning): Rapid iteration, multiple characters without training cost; somewhat less “perfectly in-character” than full fine-tune.
+- Fine-tune (optional): better style/consistency but needs GPU, LoRA workflow, and storage for adapter weights.
+
+Appendix: Useful Commands & Snippets
+-----------------------------------
+# Ubuntu Postgres + pgvector (brief)
+sudo apt update
+sudo apt install -y postgresql postgresql-contrib
+# then in psql as postgres:
+# CREATE EXTENSION IF NOT EXISTS vector;
+
+# Example psycopg2 insert (python)
+# cur.execute("INSERT INTO lines (movie, scene, character, line, embedding) VALUES (%s,%s,%s,%s,%s)",
+# (movie, scene, character, text, embedding_list))
+
+# Example pgvector query (python, using psycopg2)
+# cur.execute("SELECT id, movie, character, line FROM lines ORDER BY embedding <-> %s LIMIT %s", (user_embedding, k))
+# rows = cur.fetchall()
+
+# llama-cpp-python example
+# from llama_cpp import Llama
+# llm = Llama(model_path='models/phi-2-q4.gguf', n_ctx=2048)
+# out = llm(prompt, max_tokens=200)
+# print(out['choices'][0]['text'])
+
+# Quick tips for model conversion (conceptual)
+# - Acquire model weights and convert to GGUF quantized format via provided conversion tools for the model you pick.
+# - Tools vary by model provider; follow their conversion docs.
+
+Next steps (actionable checklist)
+--------------------------------
+1. Run the notebook prototype (use the earlier notebook outline) and validate retrieval quality.
+2. Stand up Postgres + pgvector on the droplet (or use managed Postgres).
+3. Pick and prepare a quantized model (phi-2 q4 recommended), test with llama.cpp locally.
+4. Refactor notebook into modules (data_loader, embeddings, db, retriever, prompt, llm).
+5. Add FastAPI endpoints and test end-to-end locally.
+6. Containerize with Docker, deploy via docker-compose on droplet.
+7. Add monitoring, backups, simple auth and rate-limiting.
+8. Later: implement voice adapters (STT/TTS) as separate modules.
+
+End of plan
