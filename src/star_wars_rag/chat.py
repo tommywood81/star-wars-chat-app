@@ -129,7 +129,7 @@ class StarWarsChatApp(StarWarsRAGApp):
             # Step 1: Retrieve relevant context using RAG
             logger.debug(f"Retrieving context for character '{character}' and query '{user_message[:50]}...'")
             
-            retrieved_context = self.retrieve_similar_dialogue(
+            retrieved_context = self.search_dialogue(
                 user_message,
                 top_k=max_context_lines * 2,  # Get more, then filter
                 character_filter=character
@@ -243,7 +243,7 @@ class StarWarsChatApp(StarWarsRAGApp):
         
         try:
             # Get context and build prompt (same as regular chat)
-            retrieved_context = self.retrieve_similar_dialogue(
+            retrieved_context = self.search_dialogue(
                 user_message,
                 top_k=max_context_lines * 2,
                 character_filter=character

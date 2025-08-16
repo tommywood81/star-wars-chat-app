@@ -1,0 +1,66 @@
+# Git and version control
+.git
+.gitignore
+
+# Python cache and virtual environments
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.mypy_cache/
+
+# Jupyter notebooks and checkpoints
+*.ipynb
+.ipynb_checkpoints/
+notebooks/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Documentation and README files
+*.md
+docs/
+
+# Test files and coverage
+tests/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Docker files (except main Dockerfile)
+docker-compose.override.yml
+.dockerignore
+
+# Temporary and log files
+*.log
+*.tmp
+tmp/
+
+# Large model files (will be downloaded at runtime)
+models/*.gguf
+models/*.bin
+models/*.safetensors
+
+# Database files
+*.sqlite3
+*.db

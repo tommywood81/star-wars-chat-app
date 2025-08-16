@@ -1,0 +1,60 @@
+services:
+  # Star Wars RAG Chat Backend API
+  star-wars-api:
+    build: .
+    ports:
+      - "8002:8000"  # Map to port 8002 as requested
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=info
+    volumes:
+      - ./models:/app/models  # Persist downloaded models
+      - ./data:/app/data      # Mount data directory
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Database with pgvector
+  postgres:
+    image: pgvector/pgvector:pg15
+    environment:
+      - POSTGRES_DB=star_wars_rag
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=star_wars_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Streamlit Web Interface (optional)
+  star-wars-web:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      - PYTHONPATH=/app
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+    command: ["streamlit", "run", "src/star_wars_rag/web_app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
+    depends_on:
+      - star-wars-api
+    restart: unless-stopped
+    profiles:
+      - web  # Optional service, activate with --profile web
+
+volumes:
+  postgres_data:

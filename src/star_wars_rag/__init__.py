@@ -16,6 +16,8 @@ from .chat import StarWarsChatApp
 from .llm import LocalLLM, create_llm
 from .prompt import StarWarsPromptBuilder
 from .models import ModelManager
+from .database import DatabaseManager, setup_database
+from .api import app as fastapi_app
 
 __all__ = [
     "DialogueProcessor",
@@ -26,5 +28,8 @@ __all__ = [
     "LocalLLM",
     "create_llm",
     "StarWarsPromptBuilder",
-    "ModelManager"
+    "ModelManager",
+    "DatabaseManager",
+    "setup_database",
+    "fastapi_app"
 ]

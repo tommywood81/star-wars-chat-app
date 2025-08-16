@@ -43,6 +43,12 @@ Thumbs.db
 # Data files (if sensitive)
 # data/
 
-# Model files
+# Model files (large files should not be in git)
 *.pkl
 *.model
+*.gguf
+models/*.gguf
+models/.cache/
+
+# Deployment logs
+deploy_local.log
