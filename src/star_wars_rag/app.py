@@ -10,9 +10,9 @@ from typing import List, Dict, Optional, Union
 import pandas as pd
 import numpy as np
 
-from .data_processor import DialogueProcessor
-from .embeddings import StarWarsEmbedder
-from .retrieval import DialogueRetriever
+from star_wars_rag.data_processor import DialogueProcessor
+from star_wars_rag.embeddings import StarWarsEmbedder
+from star_wars_rag.retrieval import DialogueRetriever
 
 logger = logging.getLogger(__name__)
 

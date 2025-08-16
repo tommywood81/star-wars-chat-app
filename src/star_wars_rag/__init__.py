@@ -8,16 +8,16 @@ using dialogue from the original scripts.
 __version__ = "0.1.0"
 __author__ = "Tommy Wood"
 
-from .data_processor import DialogueProcessor
-from .embeddings import StarWarsEmbedder
-from .retrieval import DialogueRetriever
-from .app import StarWarsRAGApp
-from .chat import StarWarsChatApp
-from .llm import LocalLLM, create_llm
-from .prompt import StarWarsPromptBuilder
-from .models import ModelManager
-from .database import DatabaseManager, setup_database
-from .api import app as fastapi_app
+from star_wars_rag.data_processor import DialogueProcessor
+from star_wars_rag.embeddings import StarWarsEmbedder
+from star_wars_rag.retrieval import DialogueRetriever
+from star_wars_rag.app import StarWarsRAGApp
+from star_wars_rag.chat import StarWarsChatApp
+from star_wars_rag.llm import LocalLLM, create_llm
+from star_wars_rag.prompt import StarWarsPromptBuilder
+from star_wars_rag.models import ModelManager
+from star_wars_rag.database import DatabaseManager, setup_database
+from star_wars_rag.api import app as fastapi_app
 
 __all__ = [
     "DialogueProcessor",

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 import logging
 
-from .chat import StarWarsChatApp
+from star_wars_rag.chat import StarWarsChatApp
 
 logger = logging.getLogger(__name__)
 

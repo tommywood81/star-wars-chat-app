@@ -18,8 +18,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 import uvicorn
 
-from .chat import StarWarsChatApp
-from .models import ModelManager
+from star_wars_rag.chat import StarWarsChatApp
+from star_wars_rag.models import ModelManager
 import numpy as np
 
 logger = logging.getLogger(__name__)

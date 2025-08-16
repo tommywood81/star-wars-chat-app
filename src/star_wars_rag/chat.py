@@ -9,10 +9,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Union, Iterator
 import time
 
-from .app import StarWarsRAGApp
-from .llm import create_llm, LocalLLM, MockLLM
-from .prompt import StarWarsPromptBuilder, SafetyFilter
-from .models import ModelManager, auto_setup_model
+from star_wars_rag.app import StarWarsRAGApp
+from star_wars_rag.llm import create_llm, LocalLLM, MockLLM
+from star_wars_rag.prompt import StarWarsPromptBuilder, SafetyFilter
+from star_wars_rag.models import ModelManager, auto_setup_model
 
 logger = logging.getLogger(__name__)
 
@@ -456,3 +456,25 @@ class StarWarsChatApp(StarWarsRAGApp):
             'character_results': results,
             'llm_info': self.get_llm_info()
         }
+    
+    def retrieve_similar_dialogue(self, query: str, character_filter: Optional[str] = None, 
+                                 top_k: int = 5, min_similarity: float = 0.0) -> List[Dict]:
+        """Retrieve similar dialogue - wrapper for search_dialogue method.
+        
+        This method provides compatibility for the web interface.
+        
+        Args:
+            query: Search query
+            character_filter: Filter by specific character
+            top_k: Number of results to return
+            min_similarity: Minimum similarity threshold
+            
+        Returns:
+            List of relevant dialogue results
+        """
+        return self.search_dialogue(
+            query=query,
+            character_filter=character_filter,
+            top_k=top_k,
+            min_similarity=min_similarity
+        )

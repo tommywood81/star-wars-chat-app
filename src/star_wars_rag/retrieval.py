@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 from typing import List, Dict, Optional, Union
 import logging
-from .embeddings import StarWarsEmbedder
+from star_wars_rag.embeddings import StarWarsEmbedder
 
 logger = logging.getLogger(__name__)
 
