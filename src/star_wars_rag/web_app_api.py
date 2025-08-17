@@ -314,12 +314,16 @@ def main():
     # Chat input
     st.markdown("### 💬 Send a Message")
     
+    # Initialize input key for clearing
+    if "input_key" not in st.session_state:
+        st.session_state.input_key = 0
+    
     col1, col2 = st.columns([4, 1])
     
     with col1:
         user_input = st.text_input(
             "Type your message:",
-            key="user_input",
+            key=f"user_input_{st.session_state.input_key}",
             placeholder=f"Ask {selected_character} anything about Star Wars...",
             label_visibility="collapsed"
         )
@@ -360,8 +364,8 @@ def main():
             with st.expander("🔧 Response Metadata"):
                 st.json(response_data)
         
-        # Clear input and rerun
-        st.session_state.user_input = ""
+        # Clear input by incrementing key and rerun
+        st.session_state.input_key += 1
         st.rerun()
     
     elif send_button and not user_input.strip():
