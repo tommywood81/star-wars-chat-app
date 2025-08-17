@@ -1,0 +1,32 @@
+# Lightweight Star Wars RAG Web Interface (API Client)
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install web-only dependencies
+COPY requirements.txt .
+
+# Install only web interface dependencies (no LLM libraries)
+RUN pip install --no-cache-dir \
+    streamlit>=1.28.0 \
+    requests>=2.31.0 \
+    python-dotenv>=1.0.0
+
+# Copy application code
+COPY src/ ./src/
+COPY *.py ./
+
+# Create empty models directory (not needed for API client)
+RUN mkdir -p models
+
+# Expose Streamlit port
+EXPOSE 8501
+
+# Default command (can be overridden)
+CMD ["streamlit", "run", "src/star_wars_rag/web_app_api.py", "--server.port", "8501", "--server.address", "0.0.0.0"]

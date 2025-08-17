@@ -35,9 +35,9 @@ RUN pip install --no-cache-dir \
     python-dotenv>=1.0.0 \
     requests>=2.31.0
 
-# Skip heavy optional dependencies for faster builds
-# RUN pip install --no-cache-dir llama-cpp-python>=0.2.0
-# RUN pip install --no-cache-dir huggingface-hub>=0.20.0
+# Install LLM dependencies for full functionality
+RUN pip install --no-cache-dir huggingface-hub>=0.20.0
+RUN pip install --no-cache-dir llama-cpp-python>=0.2.0
 
 # Copy application code
 COPY src/ ./src/

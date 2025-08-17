@@ -5,7 +5,7 @@ services:
     ports:
       - "8002:8000"  # Map to port 8002 as requested
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/src
       - LOG_LEVEL=info
     volumes:
       - ./models:/app/models  # Persist downloaded models
@@ -39,17 +39,16 @@ services:
 
   # Streamlit Web Interface (optional)
   star-wars-web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.web
     ports:
       - "8501:8501"
     environment:
       - PYTHONPATH=/app/src
       - STREAMLIT_SERVER_PORT=8501
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
-    volumes:
-      - ./models:/app/models
-      - ./data:/app/data
-    command: ["streamlit", "run", "src/star_wars_rag/web_app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
+    command: ["streamlit", "run", "src/star_wars_rag/web_app_api.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
     depends_on:
       - star-wars-api
     restart: unless-stopped
