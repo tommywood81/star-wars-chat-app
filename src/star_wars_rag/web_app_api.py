@@ -104,7 +104,9 @@ def get_available_characters():
     try:
         response = requests.get(f"{API_BASE_URL}/characters", timeout=10)
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            # API returns {"characters": [...]} format
+            return data.get("characters", [])
         else:
             return []
     except Exception as e:
