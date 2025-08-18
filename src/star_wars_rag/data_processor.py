@@ -20,23 +20,62 @@ class DialogueProcessor:
     def __init__(self):
         """Initialize the dialogue processor."""
         self.character_mapping = {
+            # Droids
             'THREEPIO': 'C-3PO',
             'C-3PO': 'C-3PO',
             'SEE-THREEPIO': 'C-3PO',
             'ARTOO': 'R2-D2',
             'R2-D2': 'R2-D2',
             'ARTOO-DETOO': 'R2-D2',
+            
+            # Main Characters
             'LUKE': 'Luke Skywalker',
             'LEIA': 'Princess Leia',
             'PRINCESS LEIA': 'Princess Leia',
             'HAN': 'Han Solo',
             'HAN SOLO': 'Han Solo',
+            'CHEWBACCA': 'Chewbacca',
+            'CHEWIE': 'Chewbacca',
+            
+            # Jedi/Sith
             'BEN': 'Obi-Wan Kenobi',
             'OBI-WAN': 'Obi-Wan Kenobi',
             'VADER': 'Darth Vader',
             'DARTH VADER': 'Darth Vader',
-            'CHEWBACCA': 'Chewbacca',
-            'CHEWIE': 'Chewbacca'
+            'YODA': 'Yoda',
+            'EMPEROR': 'Emperor Palpatine',
+            'PALPATINE': 'Emperor Palpatine',
+            
+            # Empire Characters
+            'TARKIN': 'Grand Moff Tarkin',
+            'GRAND MOFF TARKIN': 'Grand Moff Tarkin',
+            'PIETT': 'Admiral Piett',
+            'ADMIRAL PIETT': 'Admiral Piett',
+            'OZZEL': 'Admiral Ozzel',
+            'NEEDA': 'Captain Needa',
+            'VEERS': 'General Veers',
+            
+            # Rebels/Supporting Characters
+            'DODONNA': 'General Dodonna',
+            'MOTHMA': 'Mon Mothma',
+            'MON MOTHMA': 'Mon Mothma',
+            'ACKBAR': 'Admiral Ackbar',
+            'ADMIRAL ACKBAR': 'Admiral Ackbar',
+            'RIEEKAN': 'General Rieekan',
+            'MADINE': 'General Madine',
+            
+            # Cloud City
+            'LANDO': 'Lando Calrissian',
+            'CALRISSIAN': 'Lando Calrissian',
+            'LANDO CALRISSIAN': 'Lando Calrissian',
+            
+            # Bounty Hunters
+            'BOBA FETT': 'Boba Fett',
+            'FETT': 'Boba Fett',
+            
+            # Other
+            'BIGGS': 'Biggs Darklighter',
+            'WEDGE': 'Wedge Antilles'
         }
     
     def load_script(self, script_path: Union[str, Path]) -> str:

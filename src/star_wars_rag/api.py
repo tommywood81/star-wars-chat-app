@@ -103,36 +103,58 @@ async def lifespan(app: FastAPI):
         # Initialize chat application
         chat_app = StarWarsChatApp(auto_download=True)
         
-        # Load default data if available
+        # Load default data if available - Original Trilogy (Episodes IV, V, VI)
         data_dir = Path("data/raw")
         if data_dir.exists():
             script_files = list(data_dir.glob("*.txt"))
             if script_files:
-                # Load A New Hope by default
-                default_script = None
+                # Load Original Trilogy scripts (Episodes IV, V, VI)
+                original_trilogy_scripts = []
                 for script in script_files:
-                    if "NEW HOPE" in script.name.upper():
-                        default_script = script
-                        break
+                    script_name_upper = script.name.upper()
+                    if any(movie in script_name_upper for movie in [
+                        "NEW HOPE", "A NEW HOPE",
+                        "EMPIRE STRIKES BACK", "THE EMPIRE STRIKES BACK", 
+                        "RETURN OF THE JEDI", "THE RETURN OF THE JEDI"
+                    ]):
+                        original_trilogy_scripts.append(script)
                 
-                if default_script is None:
+                if original_trilogy_scripts:
+                    logger.info(f"Loading Original Trilogy scripts: {[s.name for s in original_trilogy_scripts]}")
+                    
+                    # Create temp directory for loading
+                    import tempfile
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        temp_script_dir = Path(temp_dir) / "scripts"
+                        temp_script_dir.mkdir()
+                        
+                        # Copy all original trilogy scripts to temp directory
+                        for script in original_trilogy_scripts:
+                            temp_script = temp_script_dir / script.name
+                            temp_script.write_text(
+                                script.read_text(encoding='utf-8'), 
+                                encoding='utf-8'
+                            )
+                        
+                        # Load all scripts at once
+                        chat_app.load_from_scripts(temp_script_dir, pattern="*.txt")
+                else:
+                    # Fallback to any available script
                     default_script = script_files[0]
-                
-                logger.info(f"Loading default data: {default_script.name}")
-                
-                # Create temp directory for loading
-                import tempfile
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    temp_script_dir = Path(temp_dir) / "scripts"
-                    temp_script_dir.mkdir()
+                    logger.info(f"Loading fallback data: {default_script.name}")
                     
-                    temp_script = temp_script_dir / default_script.name
-                    temp_script.write_text(
-                        default_script.read_text(encoding='utf-8'), 
-                        encoding='utf-8'
-                    )
-                    
-                    chat_app.load_from_scripts(temp_script_dir, pattern=default_script.name)
+                    import tempfile
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        temp_script_dir = Path(temp_dir) / "scripts"
+                        temp_script_dir.mkdir()
+                        
+                        temp_script = temp_script_dir / default_script.name
+                        temp_script.write_text(
+                            default_script.read_text(encoding='utf-8'), 
+                            encoding='utf-8'
+                        )
+                        
+                        chat_app.load_from_scripts(temp_script_dir, pattern=default_script.name)
                 
                 logger.info("Default data loaded successfully")
         
