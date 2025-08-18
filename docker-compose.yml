@@ -37,8 +37,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # Streamlit Web Interface (optional)
-  star-wars-web:
+  # Enhanced Star Wars RAG Dashboard (default)
+  star-wars-dashboard:
     build:
       context: .
       dockerfile: Dockerfile.web
@@ -48,12 +48,28 @@ services:
       - PYTHONPATH=/app/src
       - STREAMLIT_SERVER_PORT=8501
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    command: ["streamlit", "run", "src/star_wars_rag/dashboard.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
+    depends_on:
+      - star-wars-api
+    restart: unless-stopped
+
+  # Original Streamlit Web Interface (optional)
+  star-wars-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "8502:8501"  # Different port to avoid conflict
+    environment:
+      - PYTHONPATH=/app/src
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
     command: ["streamlit", "run", "src/star_wars_rag/web_app_api.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
     depends_on:
       - star-wars-api
     restart: unless-stopped
     profiles:
-      - web  # Optional service, activate with --profile web
+      - legacy  # Activate with --profile legacy
 
 volumes:
   postgres_data:

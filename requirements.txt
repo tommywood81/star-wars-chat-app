@@ -40,5 +40,6 @@ mypy>=0.991
 # Optional visualization
 matplotlib>=3.5.0
 seaborn>=0.11.0
+plotly>=5.0.0
 
 # Note: pathlib and logging are built-in Python modules
