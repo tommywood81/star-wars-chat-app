@@ -12,11 +12,13 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements and install web-only dependencies
 COPY requirements.txt .
 
-# Install only web interface dependencies (no LLM libraries)
+# Install web interface dependencies including visualization libraries
 RUN pip install --no-cache-dir \
     streamlit>=1.28.0 \
     requests>=2.31.0 \
-    python-dotenv>=1.0.0
+    python-dotenv>=1.0.0 \
+    plotly>=5.0.0 \
+    pandas>=1.5.0
 
 # Copy application code
 COPY src/ ./src/
