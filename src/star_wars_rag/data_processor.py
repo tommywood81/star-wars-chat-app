@@ -209,7 +209,7 @@ class DialogueProcessor:
         # Filter criteria for high-quality dialogue
         quality_mask = (
             (clean_df['word_count'] >= 3) &  # At least 3 words
-            (clean_df['word_count'] <= 40) &  # Not too long
+            (clean_df['word_count'] <= 80) &  # Allow longer dialogue for better context
             (clean_df['char_length'] >= 10) &  # At least 10 characters
             (~clean_df['dialogue'].str.contains(r'^\(.*\)$', regex=True))  # Not just parenthetical
         )
