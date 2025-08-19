@@ -174,7 +174,8 @@ class StarWarsChatApp(StarWarsRAGApp):
                     'retrieval_results': len(retrieved_context),
                     'context_lines_used': min(len(retrieved_context), max_context_lines),
                     'prompt_length': len(prompt),
-                    'total_time_seconds': round(total_time, 3)
+                    'total_time_seconds': round(total_time, 3),
+                    'full_prompt': prompt  # Include complete RAG prompt for explainability
                 },
                 'llm_metadata': llm_response.get('metadata', {}),
                 'model_info': {
@@ -199,7 +200,8 @@ class StarWarsChatApp(StarWarsRAGApp):
                 'conversation_metadata': {
                     'retrieval_results': 0,
                     'context_lines_used': 0,
-                    'total_time_seconds': time.time() - start_time
+                    'total_time_seconds': time.time() - start_time,
+                    'full_prompt': f"Error occurred while generating prompt for {character}"
                 },
                 'llm_metadata': {},
                 'model_info': {}

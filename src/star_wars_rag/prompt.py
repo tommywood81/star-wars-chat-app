@@ -152,24 +152,52 @@ class StarWarsPromptBuilder:
     
     def _build_context_section(self, retrieved_context: List[Dict[str, Any]], 
                               max_lines: int) -> str:
-        """Build the context section from retrieved dialogue."""
+        """Build the context section from retrieved dialogue with rich context."""
         if not retrieved_context:
             return "No specific dialogue context available."
         
         # Limit context lines
         context_lines = retrieved_context[:max_lines]
         
-        # Format context
+        # Format context with rich scene information
         formatted_lines = []
         for item in context_lines:
             char = item.get('character', 'Unknown')
             dialogue = item.get('dialogue', '').strip()
             movie = item.get('movie', '')
             
+            # Enhanced context from pipeline preprocessing
+            addressee = item.get('addressee', '')
+            emotion = item.get('emotion', '')
+            location = item.get('location', '')
+            stakes = item.get('stakes', '')
+            context = item.get('context', '')
+            
             if dialogue:
-                line = f"{char}: {dialogue}"
+                # Build rich context line
+                line = f"{char}: \"{dialogue}\""
+                
+                # Add contextual information
+                context_details = []
+                if addressee and addressee != 'unknown' and addressee != 'others':
+                    context_details.append(f"speaking to {addressee}")
+                if emotion and emotion != 'neutral' and emotion != 'unknown':
+                    context_details.append(f"emotion: {emotion}")
+                if location and location != 'scene_location' and location != 'unknown':
+                    context_details.append(f"location: {location}")
+                if stakes and stakes != 'story_progression' and stakes != 'unknown':
+                    context_details.append(f"stakes: {stakes}")
+                if context and context != 'Context unavailable':
+                    context_details.append(f"scene: {context}")
+                
+                # Add context details if available
+                if context_details:
+                    line += f" ({', '.join(context_details)})"
+                
+                # Add movie reference
                 if movie:
                     line += f" [{movie}]"
+                    
                 formatted_lines.append(line)
         
         if not formatted_lines:

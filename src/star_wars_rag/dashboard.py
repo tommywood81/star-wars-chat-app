@@ -32,103 +32,115 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Modern SaaS Dashboard Theme CSS
+# Minimal Corporate Dashboard with Bootstrap-inspired CSS
 st.markdown("""
 <style>
-    /* Modern SaaS Dashboard Theme */
+    /* Clean Corporate Theme */
     .stApp {
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        background: #f8fafc;
         color: #1e293b;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
     
     .main .block-container {
-        padding: 2rem 2rem 3rem;
+        padding: 1rem 1.5rem;
         max-width: 100%;
     }
     
-    /* Dashboard Header */
+    /* Bootstrap-inspired responsive containers */
+    .container-fluid {
+        width: 100%;
+        padding: 0 15px;
+        margin: 0 auto;
+    }
+    
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -15px;
+    }
+    
+    .col {
+        flex: 1;
+        padding: 0 15px;
+    }
+    
+    /* Compact Header */
     .dashboard-header {
         text-align: center;
         color: #1e40af;
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 2rem;
-        padding: 2rem;
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        padding: 1rem;
         background: white;
-        border-radius: 16px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         border: 1px solid #e2e8f0;
     }
     
-    /* Card Components */
+    /* Simple Cards */
     .saas-card {
         background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin: 1rem 0;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s ease;
+        border-radius: 6px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
     }
     
-    .saas-card:hover {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transform: translateY(-1px);
-    }
-    
-    /* Character Profile Card */
+    /* Clean Character Card */
     .character-profile {
         background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin: 1rem 0;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
-        border-left: 4px solid #3b82f6;
+        border-radius: 6px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        border-left: 3px solid #3b82f6;
     }
     
     .character-avatar {
-        width: 60px;
-        height: 60px;
-        border-radius: 12px;
-        border: 2px solid #3b82f6;
-        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        width: 48px;
+        height: 48px;
+        border-radius: 6px;
+        border: 1px solid #d1d5db;
+        background: #f3f4f6;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2rem;
-        margin-right: 1rem;
-        color: #1e40af;
-        font-weight: 600;
+        font-size: 1rem;
+        margin-right: 0.75rem;
+        color: #374151;
+        font-weight: 500;
     }
     
-    /* Chat Interface */
+    /* Simple Chat Interface */
     .chat-interface {
         background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        border-radius: 6px;
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
     
     .user-message {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        background: #3b82f6;
         color: white;
-        padding: 1rem;
-        border-radius: 12px;
-        margin: 0.5rem 0 0.5rem 20%;
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        padding: 0.75rem;
+        border-radius: 6px;
+        margin: 0.5rem 0 0.5rem 25%;
+        font-size: 0.9rem;
     }
     
     .character-message {
-        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
-        color: #1e293b;
-        padding: 1rem;
-        border-radius: 12px;
-        margin: 0.5rem 20% 0.5rem 0;
-        border: 1px solid #cbd5e1;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        background: #f9fafb;
+        color: #374151;
+        padding: 0.75rem;
+        border-radius: 6px;
+        margin: 0.5rem 25% 0.5rem 0;
+        border: 1px solid #e5e7eb;
+        font-size: 0.9rem;
     }
     
     /* Data Panels */
@@ -204,43 +216,44 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
-    /* Button Styling */
+    /* Bootstrap-inspired Button Styling */
     .stButton > button {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        background: #3b82f6;
         color: white;
         border: none;
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        transition: all 0.2s ease;
+        border-radius: 4px;
+        padding: 0.5rem 0.75rem;
         font-weight: 500;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        font-size: 0.8rem;
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-height: 38px;
     }
     
     .stButton > button:hover {
-        background: linear-gradient(135deg, #1d4ed8, #1e40af);
-        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
-        transform: translateY(-1px);
+        background: #2563eb;
     }
     
-    /* Input Styling */
+    /* Responsive button text */
+    @media (max-width: 768px) {
+        .stButton > button {
+            font-size: 0.75rem;
+            padding: 0.4rem 0.6rem;
+            min-height: 36px;
+        }
+    }
+    
+    /* Simple Input Styling */
     .stTextArea > div > div > textarea {
-        background: white;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        padding: 0.75rem;
-        transition: all 0.2s ease;
+        border-radius: 4px;
+        font-size: 0.875rem;
     }
     
-    .stTextArea > div > div > textarea:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-    
-    /* Selectbox Styling */
     .stSelectbox > div > div {
-        background: white;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
+        border-radius: 4px;
+        font-size: 0.875rem;
     }
     
     /* Headers */
@@ -442,6 +455,7 @@ def display_retrieved_context_panel(context_used: List[Dict], show_highlights: b
             dialogue = ctx.get('dialogue', '')
             movie = ctx.get('movie', 'Unknown')
             similarity = ctx.get('similarity', 0)
+            scene_context = ctx.get('context', 'No context available')
             
             # Determine if this line was high priority (high similarity)
             highlight_class = "priority" if similarity > 0.4 else ""
@@ -459,8 +473,11 @@ def display_retrieved_context_panel(context_used: List[Dict], show_highlights: b
                         </span>
                     </div>
                 </div>
-                <div style="font-style: italic; color: #475569;">
+                <div style="font-style: italic; color: #475569; margin-bottom: 0.5rem;">
                     "{dialogue}"
+                </div>
+                <div style="font-size: 0.75rem; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 0.5rem;">
+                    <strong>Scene Context:</strong> {scene_context}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -501,6 +518,13 @@ def display_llm_info_panel(metadata: Dict):
             f"{prompt_length} chars",
             help="Total prompt size sent to LLM"
         )
+    
+    # Show complete RAG prompt
+    full_prompt = metadata.get('full_prompt', '')
+    if full_prompt:
+        with st.expander("🔍 Complete RAG Prompt Sent to LLM", expanded=False):
+            st.markdown("**Full prompt with context and instructions:**")
+            st.code(full_prompt, language="text")
 
 
 def display_character_analytics():
@@ -600,15 +624,105 @@ def display_session_history_sidebar():
         st.rerun()
 
 
+def display_dashboard_readme():
+    """Display comprehensive dashboard readme information."""
+    st.markdown("""
+    ## 📖 Dashboard User Guide
+    
+    ### 🔄 **RAG Processing Pipeline**
+    
+    **1. Query Processing** → Your message is analyzed and prepared for embedding
+    
+    **2. Text Embedding** → Converts your text into a 384-dimensional vector using Sentence-BERT
+    
+    **3. Vector Search** → Searches 1000+ dialogue embeddings using cosine similarity
+    
+    **4. Context Retrieval** → Selects the most relevant 3-6 dialogue lines (similarity > 0.2)
+    
+    **5. LLM Generation** → GPT processes retrieved context to generate character-authentic responses
+    
+    **6. Response Output** → Delivers the response with explainability data and metrics
+    
+    ---
+    
+    ### 🎯 **How to Use This Dashboard**
+    
+    #### **Character Selection**
+    - Choose from 20+ characters ranked by dialogue volume
+    - Character cards show dialogue count and film appearances
+    - Switch characters anytime to clear conversation history
+    
+    #### **Chat Interface**
+    - Type your message in the text area
+    - Click "Send Message" to generate character responses
+    - Use suggested conversation starters for inspiration
+    
+    #### **Explainability Features**
+    - Toggle "Show Explainability Panels" in sidebar to see:
+      - Retrieved dialogue context that influenced the response
+      - Similarity scores showing relevance of each context line
+      - Processing metrics (response time, prompt length, etc.)
+    
+    #### **Analytics & Monitoring**
+    - Real-time system metrics in sidebar (dialogue lines, characters, films)
+    - Character analytics charts (when enabled)
+    - Session history with export options
+    
+    ---
+    
+    ### 🛠️ **Technical Architecture**
+    
+    **Frontend**: Streamlit dashboard with interactive analytics
+    
+    **Backend**: FastAPI with async processing and health monitoring
+    
+    **Database**: PostgreSQL with pgvector extension for vector similarity search
+    
+    **AI Models**: 
+    - Embedding: `all-MiniLM-L6-v2` (384-dimensional vectors)
+    - LLM: OpenAI GPT-3.5-turbo for response generation
+    
+    **Data**: Original Star Wars trilogy scripts with 1000+ character dialogues
+    
+    **Deployment**: Docker Compose with separated services for scalability
+    
+    ---
+    
+    ### 💡 **Tips for Best Results**
+    
+    - **Be specific**: Ask about character motivations, relationships, or experiences
+    - **Reference the films**: Characters respond better to Star Wars context
+    - **Check explainability**: See which dialogue lines influenced responses
+    - **Try different characters**: Each has unique dialogue patterns and personality
+    - **Use system info**: Monitor performance and data coverage in sidebar
+    """)
+
+
 def main():
     """Main Star Wars RAG dashboard interface."""
-    # Dashboard Header
-    st.markdown('<h1 class="dashboard-header">Star Wars RAG Analytics Dashboard</h1>', unsafe_allow_html=True)
-    st.markdown("""
-    <div style="text-align: center; margin-bottom: 2rem; color: #64748b;">
-        Advanced RAG system with real-time character interaction and explainable AI
-    </div>
-    """, unsafe_allow_html=True)
+    # Dashboard Header with Readme Button
+    header_col1, header_col2 = st.columns([4, 1])
+    
+    with header_col1:
+        st.markdown('<h1 class="dashboard-header">Star Wars RAG Dashboard</h1>', unsafe_allow_html=True)
+        st.markdown("""
+        <div style="text-align: center; margin-bottom: 1rem; color: #64748b; font-size: 0.9rem;">
+            AI-powered character interaction with retrieval-augmented generation
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with header_col2:
+        st.markdown("<br>", unsafe_allow_html=True)  # Spacing
+        if st.button("📖 Dashboard Readme", help="Complete guide to dashboard features and usage"):
+            st.session_state.show_readme = True
+    
+    # Show readme popup if requested
+    if st.session_state.get("show_readme", False):
+        with st.expander("📖 Dashboard User Guide", expanded=True):
+            display_dashboard_readme()
+            if st.button("Close Guide"):
+                st.session_state.show_readme = False
+                st.rerun()
     
     # Check API health
     health = get_api_health()
@@ -626,34 +740,23 @@ def main():
     if "session_id" not in st.session_state:
         st.session_state.session_id = str(uuid.uuid4())
     
-    # Dashboard Sidebar
+    # Simplified Sidebar
     with st.sidebar:
-        st.markdown("## System Overview")
+        st.markdown("## System Status")
         
-        # System metrics
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Dialogue Lines", system_info.get('dialogue_lines', 0))
-            st.metric("Characters", system_info.get('characters_count', 0))
+        # Key metrics only
+        st.metric("Characters", system_info.get('characters_count', 0))
+        st.metric("Dialogue Lines", system_info.get('dialogue_lines', 0))
+        status_indicator = "✅ Online" if health.get("models_loaded") else "❌ Offline"
+        st.metric("Status", status_indicator)
         
-        with col2:
-            st.metric("Films", system_info.get('movies_count', 0))
-            status_indicator = "Online" if health.get("models_loaded") else "Offline"
-            st.metric("Model Status", status_indicator)
+        # Essential settings
+        st.markdown("## Settings")
+        show_explainability = st.checkbox("Show Explainability", value=True)
+        show_analytics = st.checkbox("Show Analytics", value=False)
         
-        # Model information
-        st.markdown("### Model Configuration")
-        st.text(f"Embedding: {system_info.get('embedding_model', 'Unknown')}")
-        st.text(f"LLM: {system_info.get('llm_model', 'Unknown')}")
-        
-        # Session history
+        # Session management
         display_session_history_sidebar()
-        
-        # Settings
-        st.markdown("## Display Settings")
-        show_explainability = st.checkbox("Show Explainability Panels", value=True)
-        show_pipeline = st.checkbox("Show Processing Pipeline", value=True)
-        show_analytics = st.checkbox("Show Character Analytics", value=False)
     
     # Main layout: Character selector and chat
     char_col, chat_col = st.columns([1, 2])
@@ -700,9 +803,11 @@ def main():
         
         st.markdown('<div class="chat-interface">', unsafe_allow_html=True)
         
-        # Pipeline visualization
-        if show_pipeline:
-            display_pipeline_visualization("idle")
+        # Simple status indicator
+        if health.get("models_loaded"):
+            st.success("✅ System Ready")
+        else:
+            st.error("❌ System Offline")
         
         # Chat Messages
         if st.session_state.messages:
@@ -734,34 +839,40 @@ def main():
                             # Retrieved context
                             display_retrieved_context_panel(message["context_used"])
                             
-                            # LLM info
-                            if message.get("metadata"):
-                                display_llm_info_panel(message["metadata"])
+                            # LLM info - check both metadata and conversation_metadata
+                            metadata = message.get("metadata", {})
+                            if not metadata and message.get("conversation_metadata"):
+                                metadata = message["conversation_metadata"]
+                            
+                            if metadata:
+                                display_llm_info_panel(metadata)
         else:
-            st.markdown(f"### Start a conversation with {selected_character}!")
+            st.markdown(f"#### Start a conversation with {selected_character}!")
             
-            # Suggested questions
+            # Top 6 conversation starters - listed vertically
             suggestions = [
-                "Tell me about your greatest challenge",
-                "What motivates you?", 
-                "Share wisdom with me",
-                "Tell me about the Force",
-                "What's your story?"
+                "Rate the cantina band's musical talent on a scale of 1-10",
+                "What's your opinion on the Death Star's interior design?",
+                "If you could choose your own theme music, what would it sound like?",
+                "What's the most ridiculous thing you've seen a Stormtrooper miss?",
+                "Explain quantum physics using only Star Wars analogies",
+                "If droids had social media, what would they post about?"
             ]
             
             st.markdown("**Quick start suggestions:**")
-            suggestion_cols = st.columns(len(suggestions))
+            
+            # Display suggestions vertically, one per row
             for i, suggestion in enumerate(suggestions):
-                if suggestion_cols[i].button(suggestion, key=f"suggestion_{i}"):
+                if st.button(suggestion, key=f"suggestion_{i}", use_container_width=True):
                     st.session_state.user_input = suggestion
                     st.rerun()
         
         # Chat Input
-        st.markdown("### Your Message")
+        st.markdown("#### Your Message")
         user_input = st.text_area(
             "Type your message:",
             value=st.session_state.get("user_input", ""),
-            height=100,
+            height=80,
             placeholder=f"Ask {selected_character} anything...",
             key="chat_input"
         )
@@ -775,13 +886,6 @@ def main():
                     "content": user_input,
                     "timestamp": time.time()
                 })
-                
-                # Show pipeline in action
-                if show_pipeline:
-                    with st.spinner("Processing your message..."):
-                        for step in ["query processing", "text embedding", "llm generation"]:
-                            display_pipeline_visualization(step)
-                            time.sleep(0.5)
                 
                 # Generate response
                 with st.spinner(f"{selected_character} is thinking..."):

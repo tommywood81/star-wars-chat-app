@@ -1,0 +1,100 @@
+{
+  "metadata": {
+    "processing_date": "2025-08-19T19:15:00.000000",
+    "total_lines": 8,
+    "description": "Manually enhanced demo data to show context feature",
+    "method": "manual_llm_style_enhancement"
+  },
+  "dialogue_lines": [
+    {
+      "speaker": "HAN",
+      "character": "HAN",
+      "addressee": "Luke",
+      "emotion": "awkward_embarrassed",
+      "location": "Millennium_Falcon_cockpit",
+      "stakes": "relationship_revelation",
+      "context": "Han realizes Luke doesn't know about his feelings for Leia and tries to break the news gently",
+      "processing_method": "llm_enhanced",
+      "dialogue": "Ooops! I guess you haven't told Luke about that yet.",
+      "dialogue_clean": "Ooops! I guess you haven't told Luke about that yet.",
+      "movie": "The Empire Strikes Back",
+      "line_number": 1,
+      "word_count": 10
+    },
+    {
+      "speaker": "HAN",
+      "character": "HAN", 
+      "addressee": "Luke",
+      "emotion": "hesitant_romantic",
+      "location": "Endor_rebel_base",
+      "stakes": "love_confession",
+      "context": "Han is trying to confess his feelings about Leia to Luke before the dangerous mission",
+      "processing_method": "llm_enhanced",
+      "dialogue": "Luke….Ah about Leia….I",
+      "dialogue_clean": "Luke….Ah about Leia….I",
+      "movie": "Star Wars The Return Of The Jedi",
+      "line_number": 2,
+      "word_count": 4
+    },
+    {
+      "speaker": "HAN",
+      "character": "HAN",
+      "addressee": "Chewbacca",
+      "emotion": "confused_concerned",
+      "location": "Cloud_City_prison",
+      "stakes": "friend_rescue",
+      "context": "Han is surprised to learn Luke came to rescue him in Cloud City, worried about the trap",
+      "processing_method": "llm_enhanced", 
+      "dialogue": "Luke? He's here too?",
+      "dialogue_clean": "Luke? He's here too?",
+      "movie": "Star Wars The Return Of The Jedi",
+      "line_number": 3,
+      "word_count": 4
+    },
+    {
+      "speaker": "HAN",
+      "character": "HAN",
+      "addressee": "Leia",
+      "emotion": "desperate_panic",
+      "location": "Death_Star_detention_center",
+      "stakes": "rescue_mission",
+      "context": "Han is frantically calling for Luke after he falls into the trash compactor",
+      "processing_method": "llm_enhanced",
+      "dialogue": "Luke! Luke! Luke!",
+      "dialogue_clean": "Luke! Luke! Luke!",
+      "movie": "Star Wars A New Hope", 
+      "line_number": 4,
+      "word_count": 3
+    },
+    {
+      "speaker": "HAN",
+      "character": "HAN",
+      "addressee": "Leia",
+      "emotion": "defensive_reassuring",
+      "location": "Hoth_rebel_base",
+      "stakes": "friend_safety",
+      "context": "Han is trying to reassure Leia that Luke is fine after he went missing on Hoth patrol",
+      "processing_method": "llm_enhanced",
+      "dialogue": "Luke! I'm sure he's fine. Probably sitting around wondering what",
+      "dialogue_clean": "Luke! I'm sure he's fine. Probably sitting around wondering what",
+      "movie": "The Empire Strikes Back",
+      "line_number": 5,
+      "word_count": 11
+    },
+    {
+      "speaker": "HAN",
+      "character": "HAN",
+      "addressee": "Vader",
+      "emotion": "confused_defiant",
+      "location": "Cloud_City_carbon_chamber",
+      "stakes": "life_or_death",
+      "context": "Han doesn't understand why Vader is asking about Luke during his interrogation",
+      "processing_method": "llm_enhanced",
+      "dialogue": "Luke? I don't get it.",
+      "dialogue_clean": "Luke? I don't get it.",
+      "movie": "The Empire Strikes Back",
+      "line_number": 6,
+      "word_count": 5
+    }
+  ]
+}
