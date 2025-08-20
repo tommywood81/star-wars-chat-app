@@ -103,147 +103,45 @@ async def lifespan(app: FastAPI):
         # Initialize chat application
         chat_app = StarWarsChatApp(auto_download=True)
         
-        # Load pipeline-enhanced data if available, otherwise fall back to raw scripts
-        # First try manual demo data, then full pipeline data
-        demo_data_file = Path("data/pipeline_processed/manual_enhanced_demo.json")
-        pipeline_data_file = Path("data/pipeline_processed/pipeline_enhanced_complete.json")
+        # Load raw script data
+        logger.info("Loading raw script data...")
         
-        if pipeline_data_file.exists():
-            logger.info(f"Loading FULL pipeline data: {pipeline_data_file}")
-            try:
-                import json
-                import pandas as pd
+        data_dir = Path("data/raw")
+        if data_dir.exists():
+            script_files = list(data_dir.glob("*.txt"))
+            if script_files:
+                # Load Original Trilogy scripts (Episodes IV, V, VI)
+                original_trilogy_scripts = []
+                for script in script_files:
+                    script_name_upper = script.name.upper()
+                    if any(movie in script_name_upper for movie in [
+                        "NEW HOPE", "A NEW HOPE",
+                        "EMPIRE STRIKES BACK", "THE EMPIRE STRIKES BACK", 
+                        "RETURN OF THE JEDI", "THE RETURN OF THE JEDI"
+                    ]):
+                        original_trilogy_scripts.append(script)
                 
-                # Load the full pipeline enhanced JSON data
-                with open(pipeline_data_file, 'r', encoding='utf-8') as f:
-                    pipeline_data = json.load(f)
-                
-                # Convert to DataFrame format expected by the system
-                dialogue_lines = pipeline_data.get('dialogue_lines', [])
-                
-                if dialogue_lines:
-                    # Convert to DataFrame with expected columns
-                    df = pd.DataFrame(dialogue_lines)
+                if original_trilogy_scripts:
+                    logger.info(f"Loading Original Trilogy scripts: {[s.name for s in original_trilogy_scripts]}")
                     
-                    # Map pipeline fields to expected columns
-                    if 'speaker' in df.columns:
-                        df['character'] = df['speaker']
-                    if 'dialogue' not in df.columns:
-                        logger.error("Pipeline data missing 'dialogue' field")
-                        raise ValueError("Invalid pipeline data format")
-                    
-                    # Create dialogue_clean field (required by retriever)
-                    df['dialogue_clean'] = df['dialogue']
-                    
-                    # Ensure required columns exist
-                    required_columns = ['character', 'dialogue', 'movie', 'dialogue_clean']
-                    for col in required_columns:
-                        if col not in df.columns:
-                            if col == 'character':
-                                df[col] = df.get('speaker', 'Unknown')
-                            elif col == 'movie':
-                                df[col] = 'Unknown'
-                            else:
-                                df[col] = df.get('dialogue', 'Unknown')
-                    
-                    # Normalize character names for compatibility
-                    if 'character_normalized' not in df.columns:
-                        df['character_normalized'] = df['character']
-                    
-                    # Add scene context if available for enhanced prompts
-                    context_fields = ['addressee', 'emotion', 'location', 'stakes', 'context']
-                    for field in context_fields:
-                        if field not in df.columns:
-                            df[field] = 'unknown'
-                    
-                    # Load the enhanced data directly
-                    chat_app.retriever.load_dialogue_data(df)
-                    chat_app.is_loaded = True
-                    
-                    logger.info(f"✅ Loaded {len(dialogue_lines)} pipeline-enhanced dialogue lines with context fields")
-                else:
-                    logger.warning("Pipeline data file exists but contains no dialogue lines")
-                    raise FileNotFoundError("No dialogue data in pipeline file")
-                    
-            except Exception as e:
-                logger.error(f"Failed to load pipeline data: {e}")
-                logger.info("Falling back to raw script processing...")
-                
-                # Fall back to original script processing
-                data_dir = Path("data/raw")
-                if data_dir.exists():
-                    script_files = list(data_dir.glob("*.txt"))
-                    if script_files:
-                        # Load Original Trilogy scripts (Episodes IV, V, VI)
-                        original_trilogy_scripts = []
-                        for script in script_files:
-                            script_name_upper = script.name.upper()
-                            if any(movie in script_name_upper for movie in [
-                                "NEW HOPE", "A NEW HOPE",
-                                "EMPIRE STRIKES BACK", "THE EMPIRE STRIKES BACK", 
-                                "RETURN OF THE JEDI", "THE RETURN OF THE JEDI"
-                            ]):
-                                original_trilogy_scripts.append(script)
+                    # Create temp directory for loading
+                    import tempfile
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        temp_script_dir = Path(temp_dir) / "scripts"
+                        temp_script_dir.mkdir()
                         
-                        if original_trilogy_scripts:
-                            logger.info(f"Loading Original Trilogy scripts: {[s.name for s in original_trilogy_scripts]}")
-                            
-                            # Create temp directory for loading
-                            import tempfile
-                            with tempfile.TemporaryDirectory() as temp_dir:
-                                temp_script_dir = Path(temp_dir) / "scripts"
-                                temp_script_dir.mkdir()
-                                
-                                # Copy all original trilogy scripts to temp directory
-                                for script in original_trilogy_scripts:
-                                    temp_script = temp_script_dir / script.name
-                                    temp_script.write_text(
-                                        script.read_text(encoding='utf-8'), 
-                                        encoding='utf-8'
-                                    )
-                                
-                                # Load all scripts at once
-                                chat_app.load_from_scripts(temp_script_dir, pattern="*.txt")
-        else:
-            logger.info("No pipeline data found, processing raw scripts...")
-            
-            # Original fallback processing
-            data_dir = Path("data/raw")
-            if data_dir.exists():
-                script_files = list(data_dir.glob("*.txt"))
-                if script_files:
-                    # Load Original Trilogy scripts (Episodes IV, V, VI)
-                    original_trilogy_scripts = []
-                    for script in script_files:
-                        script_name_upper = script.name.upper()
-                        if any(movie in script_name_upper for movie in [
-                            "NEW HOPE", "A NEW HOPE",
-                            "EMPIRE STRIKES BACK", "THE EMPIRE STRIKES BACK", 
-                            "RETURN OF THE JEDI", "THE RETURN OF THE JEDI"
-                        ]):
-                            original_trilogy_scripts.append(script)
-                    
-                    if original_trilogy_scripts:
-                        logger.info(f"Loading Original Trilogy scripts: {[s.name for s in original_trilogy_scripts]}")
+                        # Copy all original trilogy scripts to temp directory
+                        for script in original_trilogy_scripts:
+                            temp_script = temp_script_dir / script.name
+                            temp_script.write_text(
+                                script.read_text(encoding='utf-8'), 
+                                encoding='utf-8'
+                            )
                         
-                        # Create temp directory for loading
-                        import tempfile
-                        with tempfile.TemporaryDirectory() as temp_dir:
-                            temp_script_dir = Path(temp_dir) / "scripts"
-                            temp_script_dir.mkdir()
-                            
-                            # Copy all original trilogy scripts to temp directory
-                            for script in original_trilogy_scripts:
-                                temp_script = temp_script_dir / script.name
-                                temp_script.write_text(
-                                    script.read_text(encoding='utf-8'), 
-                                    encoding='utf-8'
-                                )
-                            
-                            # Load all scripts at once
-                            chat_app.load_from_scripts(temp_script_dir, pattern="*.txt")
+                        # Load all scripts at once
+                        chat_app.load_from_scripts(temp_script_dir, pattern="*.txt")
                 
-                logger.info("Default data loaded successfully")
+                logger.info("Raw script data loaded successfully")
         
         logger.info("Star Wars RAG API started successfully")
         

@@ -1,4 +1,0 @@
-# Enhanced Star Wars Script with Scene Context
-# Format: CHARACTER | DIALOGUE | CONTEXT | MOVIE
-
-DISSOLVE TO | ["In the rough draft Luke is asleep and struggling with thoughts of | Scene: 13.  TATOOINE INN | Action: VADER (to himself) Luke, beware, you are the Emperor’s prey now. Vader and the dark side. Yoda and Ben are also present in the | Star Wars The Return Of The Jedi
