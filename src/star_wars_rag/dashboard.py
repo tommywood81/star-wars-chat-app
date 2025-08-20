@@ -1,933 +1,396 @@
 """
-Enhanced SaaS-grade Star Wars RAG Dashboard
-
-This module provides a professional dashboard interface with explainability features,
-dark Star Wars theme, analytics, and advanced RAG visualization capabilities.
+Simple Star Wars RAG Chat Dashboard with Voice Features
 """
 
 import streamlit as st
 import requests
+import json
 import time
 import uuid
-import json
-import plotly.express as px
-import plotly.graph_objects as go
-from typing import Dict, List, Any, Optional
-import logging
-from collections import Counter
-import pandas as pd
-
-logger = logging.getLogger(__name__)
-
-# Configuration
-import os
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8002")  # Environment configurable
-API_TIMEOUT = int(os.getenv("API_TIMEOUT", "30"))
+from pathlib import Path
+import base64
+from io import BytesIO
+import speech_recognition as sr
+import pyttsx3
+import threading
+import queue
 
 # Page configuration
 st.set_page_config(
-    page_title="Star Wars RAG Analytics Dashboard",
+    page_title="Star Wars Chat",
     page_icon="⭐",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Minimal Corporate Dashboard with Bootstrap-inspired CSS
+# Custom CSS for clean design
 st.markdown("""
 <style>
-    /* Clean Corporate Theme */
+    .main {
+        background-image: url('data:image/jpeg;base64,{}');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+    
     .stApp {
-        background: #f8fafc;
-        color: #1e293b;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: rgba(0, 0, 0, 0.8);
     }
     
-    .main .block-container {
-        padding: 1rem 1.5rem;
-        max-width: 100%;
+    .chat-container {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 10px 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     
-    /* Bootstrap-inspired responsive containers */
-    .container-fluid {
-        width: 100%;
-        padding: 0 15px;
-        margin: 0 auto;
+    .character-selector {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
     }
     
-    .row {
-        display: flex;
-        flex-wrap: wrap;
-        margin: 0 -15px;
+    .voice-controls {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
     }
     
-    .col {
-        flex: 1;
-        padding: 0 15px;
+    .info-button {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
     }
     
-    /* Compact Header */
-    .dashboard-header {
-        text-align: center;
-        color: #1e40af;
-        font-size: 1.75rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        padding: 1rem;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
-    }
-    
-    /* Simple Cards */
-    .saas-card {
-        background: white;
-        border-radius: 6px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        border: 1px solid #e5e7eb;
-    }
-    
-    /* Clean Character Card */
-    .character-profile {
-        background: white;
-        border-radius: 6px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        border: 1px solid #e5e7eb;
-        border-left: 3px solid #3b82f6;
-    }
-    
-    .character-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 6px;
-        border: 1px solid #d1d5db;
-        background: #f3f4f6;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        margin-right: 0.75rem;
-        color: #374151;
-        font-weight: 500;
-    }
-    
-    /* Simple Chat Interface */
-    .chat-interface {
-        background: white;
-        border-radius: 6px;
-        padding: 1rem;
-        border: 1px solid #e5e7eb;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    }
-    
-    .user-message {
-        background: #3b82f6;
-        color: white;
-        padding: 0.75rem;
-        border-radius: 6px;
-        margin: 0.5rem 0 0.5rem 25%;
-        font-size: 0.9rem;
-    }
-    
-    .character-message {
-        background: #f9fafb;
-        color: #374151;
-        padding: 0.75rem;
-        border-radius: 6px;
-        margin: 0.5rem 25% 0.5rem 0;
-        border: 1px solid #e5e7eb;
-        font-size: 0.9rem;
-    }
-    
-    /* Data Panels */
-    .data-panel {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 1rem 0;
-        border-left: 3px solid #3b82f6;
-    }
-    
-    .context-line {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-left: 3px solid #3b82f6;
-        padding: 0.8rem;
-        margin: 0.5rem 0;
-        border-radius: 0 8px 8px 0;
-        transition: all 0.2s ease;
-    }
-    
-    .context-line:hover {
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    
-    .context-line.priority {
-        border-left-color: #f59e0b;
-        background: #fffbeb;
-    }
-    
-    /* Process Indicators */
-    .process-indicator {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 0.5rem;
-        text-align: center;
-        transition: all 0.3s ease;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    }
-    
-    .process-indicator.active {
-        border-color: #3b82f6;
-        background: #dbeafe;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-    
-    .process-indicator.complete {
-        border-color: #10b981;
-        background: #d1fae5;
-    }
-    
-    /* Sidebar Styling */
-    .css-1d391kg {
-        background: #f8fafc;
-        border-right: 1px solid #e2e8f0;
-    }
-    
-    /* Metric Cards */
-    .metric-card {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 1rem;
-        text-align: center;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        transition: all 0.2s ease;
-    }
-    
-    .metric-card:hover {
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    
-    /* Bootstrap-inspired Button Styling */
     .stButton > button {
-        background: #3b82f6;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 0.5rem 0.75rem;
-        font-weight: 500;
-        font-size: 0.8rem;
-        width: 100%;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        min-height: 38px;
+        border-radius: 25px;
+        border: 2px solid #FFD700;
+        background: linear-gradient(90deg, #FFD700, #FFA500);
+        color: #000;
+        font-weight: bold;
+        padding: 10px 20px;
+        transition: all 0.3s ease;
     }
     
     .stButton > button:hover {
-        background: #2563eb;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
     }
     
-    /* Responsive button text */
-    @media (max-width: 768px) {
-        .stButton > button {
-            font-size: 0.75rem;
-            padding: 0.4rem 0.6rem;
-            min-height: 36px;
-        }
+    .voice-button {
+        background: linear-gradient(90deg, #4CAF50, #45a049) !important;
+        border: 2px solid #4CAF50 !important;
     }
     
-    /* Simple Input Styling */
-    .stTextArea > div > div > textarea {
-        border-radius: 4px;
-        font-size: 0.875rem;
-    }
-    
-    .stSelectbox > div > div {
-        border-radius: 4px;
-        font-size: 0.875rem;
-    }
-    
-    /* Headers */
-    h1, h2, h3, h4, h5, h6 {
-        color: #1e293b;
-        font-weight: 600;
-    }
-    
-    /* Clean Scrollbars */
-    ::-webkit-scrollbar {
-        width: 6px;
-        background: #f1f5f9;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 3px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-    }
-    
-    /* Success/Info/Warning Messages */
-    .stSuccess {
-        background: #d1fae5;
-        border: 1px solid #10b981;
-        color: #065f46;
-    }
-    
-    .stInfo {
-        background: #dbeafe;
-        border: 1px solid #3b82f6;
-        color: #1e40af;
-    }
-    
-    .stWarning {
-        background: #fef3c7;
-        border: 1px solid #f59e0b;
-        color: #92400e;
-    }
-    
-    .stError {
-        background: #fee2e2;
-        border: 1px solid #ef4444;
-        color: #dc2626;
+    .voice-button:hover {
+        box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3) !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
+# Load background image
+def load_background_image():
+    """Load and encode background image."""
+    try:
+        background_path = Path("static/images/background.jpeg")
+        if background_path.exists():
+            with open(background_path, "rb") as f:
+                image_data = f.read()
+            return base64.b64encode(image_data).decode()
+    except Exception as e:
+        st.error(f"Error loading background image: {e}")
+    return ""
 
-@st.cache_data(ttl=10)
-def get_api_health():
-    """Get API health status."""
+# Initialize session state
+if 'session_id' not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+if 'conversation' not in st.session_state:
+    st.session_state.conversation = []
+if 'selected_character' not in st.session_state:
+    st.session_state.selected_character = None
+if 'voice_enabled' not in st.session_state:
+    st.session_state.voice_enabled = False
+if 'tts_enabled' not in st.session_state:
+    st.session_state.tts_enabled = False
+
+# API configuration
+API_BASE_URL = "http://localhost:8000"
+
+def check_api_health():
+    """Check if the API is running."""
     try:
         response = requests.get(f"{API_BASE_URL}/health", timeout=5)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return {"status": "error", "models_loaded": False, "database_connected": False, "data_loaded": False}
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return {"status": "error", "models_loaded": False, "database_connected": False, "data_loaded": False}
+        return response.status_code == 200
+    except:
+        return False
 
-
-@st.cache_data(ttl=30)
-def get_system_info():
-    """Get system information from API."""
-    try:
-        response = requests.get(f"{API_BASE_URL}/system/info", timeout=API_TIMEOUT)
-        if response.status_code == 200:
-            return response.json()
-        return {}
-    except Exception as e:
-        logger.error(f"System info failed: {e}")
-        return {}
-
-
-@st.cache_data(ttl=60)
-def get_characters():
+def get_available_characters():
     """Get available characters from API."""
     try:
-        response = requests.get(f"{API_BASE_URL}/characters", timeout=API_TIMEOUT)
+        response = requests.get(f"{API_BASE_URL}/characters", timeout=5)
         if response.status_code == 200:
             data = response.json()
-            return data.get("characters", [])
-        return []
+            return [char['name'] for char in data.get('characters', [])]
     except Exception as e:
-        logger.error(f"Characters fetch failed: {e}")
-        return []
+        st.error(f"Error fetching characters: {e}")
+    return []
 
-
-def chat_with_api(character: str, message: str, session_id: str) -> Dict[str, Any]:
-    """Send chat request to API."""
+def chat_with_character(message, character):
+    """Send chat message to API."""
     try:
         payload = {
             "character": character,
             "message": message,
-            "session_id": session_id,
-            "temperature": 0.8,
-            "max_tokens": 150
+            "session_id": st.session_state.session_id,
+            "max_tokens": 150,
+            "temperature": 0.7
         }
         
-        response = requests.post(
-            f"{API_BASE_URL}/chat",
-            json=payload,
-            timeout=API_TIMEOUT
-        )
-        
+        response = requests.post(f"{API_BASE_URL}/chat", json=payload, timeout=30)
         if response.status_code == 200:
             return response.json()
         else:
-            return {
-                "response": "I'm having trouble responding right now.",
-                "error": f"API error: {response.status_code}"
-            }
+            st.error(f"API Error: {response.status_code}")
+            return None
     except Exception as e:
-        logger.error(f"Chat API error: {e}")
-        return {
-            "response": "I'm experiencing technical difficulties.",
-            "error": str(e)
-        }
+        st.error(f"Error communicating with API: {e}")
+        return None
 
-
-def display_character_persona_header(character: str, character_data: Dict):
-    """Display character profile card with modern SaaS styling."""
-    dialogue_count = character_data.get('dialogue_count', 0)
-    movies = character_data.get('movies', [])
-    sample_dialogue = character_data.get('sample_dialogue', [])
-    
-    # Character initials for clean display
-    char_initials = ''.join([name[0] for name in character.split()[:2]])
-    
-    st.markdown(f"""
-    <div class="character-profile">
-        <div style="display: flex; align-items: center;">
-            <div class="character-avatar">{char_initials}</div>
-            <div>
-                <h2 style="margin: 0; color: #1e40af;">{character}</h2>
-                <p style="margin: 0.5rem 0; color: #64748b;">
-                    {dialogue_count} dialogue lines across {len(movies)} films
-                </p>
-                <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
-                    <span style="background: #dbeafe; color: #1e40af; padding: 0.3rem 0.8rem; border-radius: 6px; font-size: 0.8rem; font-weight: 500;">
-                        {len(movies)} Films
-                    </span>
-                    <span style="background: #fef3c7; color: #92400e; padding: 0.3rem 0.8rem; border-radius: 6px; font-size: 0.8rem; font-weight: 500;">
-                        {dialogue_count} Lines
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-
-def display_pipeline_visualization(step: str = "idle"):
-    """Display processing pipeline with modern SaaS indicators."""
-    steps = [
-        ("Query Processing", "1"),
-        ("Text Embedding", "2"),
-        ("Vector Search", "3"),
-        ("Context Retrieval", "4"),
-        ("LLM Generation", "5"),
-        ("Response Output", "6")
-    ]
-    
-    cols = st.columns(len(steps))
-    
-    for i, (step_name, number) in enumerate(steps):
-        with cols[i]:
-            if step == "idle":
-                class_name = "process-indicator"
-            elif i < len(steps) - 1:
-                class_name = "process-indicator complete"
-            elif step_name.lower().replace(" ", "_") == step.replace("_", " "):
-                class_name = "process-indicator active"
-            else:
-                class_name = "process-indicator"
-            
-            st.markdown(f"""
-            <div class="{class_name}">
-                <div style="font-size: 1.5rem; color: #3b82f6; font-weight: 600;">{number}</div>
-                <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #64748b;">{step_name}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-
-def display_retrieved_context_panel(context_used: List[Dict], show_highlights: bool = True):
-    """Display retrieved context with modern SaaS styling."""
-    if not context_used:
-        return
-    
-    st.markdown("### Retrieved Context")
-    
-    with st.expander(f"View {len(context_used)} retrieved dialogue lines", expanded=False):
-        for i, ctx in enumerate(context_used, 1):
-            character = ctx.get('character', 'Unknown')
-            dialogue = ctx.get('dialogue', '')
-            movie = ctx.get('movie', 'Unknown')
-            similarity = ctx.get('similarity', 0)
-            scene_context = ctx.get('context', 'No context available')
-            
-            # Determine if this line was high priority (high similarity)
-            highlight_class = "priority" if similarity > 0.4 else ""
-            
-            st.markdown(f"""
-            <div class="context-line {highlight_class}">
-                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 0.5rem;">
-                    <strong style="color: #1e40af;">#{i} {character}</strong>
-                    <div style="margin-left: auto;">
-                        <span style="background: #f1f5f9; color: #64748b; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">
-                            {movie}
-                        </span>
-                        <span style="background: #dbeafe; color: #1e40af; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; margin-left: 0.5rem;">
-                            {similarity:.3f}
-                        </span>
-                    </div>
-                </div>
-                <div style="font-style: italic; color: #475569; margin-bottom: 0.5rem;">
-                    "{dialogue}"
-                </div>
-                <div style="font-size: 0.75rem; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 0.5rem;">
-                    <strong>Scene Context:</strong> {scene_context}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-
-def display_llm_info_panel(metadata: Dict):
-    """Display LLM processing metrics with modern styling."""
-    st.markdown("### Model Processing Metrics")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric(
-            "Context Found",
-            metadata.get('retrieval_results', 0),
-            help="Number of similar dialogue lines found"
-        )
-    
-    with col2:
-        st.metric(
-            "Lines Used", 
-            metadata.get('context_lines_used', 0),
-            help="Lines sent to LLM for context"
-        )
-    
-    with col3:
-        total_time = metadata.get('total_time_seconds', 0)
-        st.metric(
-            "Response Time",
-            f"{total_time:.2f}s",
-            help="End-to-end response time"
-        )
-    
-    with col4:
-        prompt_length = metadata.get('prompt_length', 0)
-        st.metric(
-            "Prompt Length",
-            f"{prompt_length} chars",
-            help="Total prompt size sent to LLM"
-        )
-    
-    # Show complete RAG prompt
-    full_prompt = metadata.get('full_prompt', '')
-    if full_prompt:
-        with st.expander("🔍 Complete RAG Prompt Sent to LLM", expanded=False):
-            st.markdown("**Full prompt with context and instructions:**")
-            st.code(full_prompt, language="text")
-
-
-def display_character_analytics():
-    """Display character analytics with modern SaaS styling."""
-    st.markdown("### Character Analytics")
-    
-    characters = get_characters()
-    if not characters:
-        st.warning("No character data available")
-        return
-    
-    # Prepare data
-    char_names = []
-    dialogue_counts = []
-    movies_data = []
-    
-    for char in characters:
-        if isinstance(char, dict) and char.get('dialogue_count', 0) > 0:
-            char_names.append(char['name'])
-            dialogue_counts.append(char['dialogue_count'])
-            movies_data.extend(char.get('movies', []))
-    
-    if not char_names:
-        st.info("Analytics will appear when characters have dialogue data")
-        return
-    
-    col1, col2 = st.columns(2)
-    
-    # Top characters distribution
-    with col1:
-        st.markdown("#### Top Characters by Dialogue")
+def display_info_modal():
+    """Display information about the application."""
+    if st.button("ℹ️ Info", key="info_button", help="Click for app information"):
+        st.info("""
+        ## Star Wars RAG Chat Application
         
-        # Get top 10 characters
-        top_chars = list(zip(char_names, dialogue_counts))
-        top_chars.sort(key=lambda x: x[1], reverse=True)
-        top_chars = top_chars[:10]
+        **How it works:**
+        1. **Text Processing**: Raw Star Wars script data is processed and cleaned
+        2. **Embedding Generation**: Dialogue lines are converted to vector embeddings
+        3. **Vector Search**: When you ask a question, the system finds the 6 most relevant dialogue lines
+        4. **Context Retrieval**: These lines provide context about how the character speaks
+        5. **LLM Generation**: A local Phi-2 model generates responses based on the context
+        6. **Response Output**: The character responds in their authentic voice
         
-        if top_chars:
-            fig = px.pie(
-                values=[count for _, count in top_chars],
-                names=[name for name, _ in top_chars],
-                color_discrete_sequence=['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#84cc16', '#f97316', '#6366f1']
-            )
-            fig.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                font_color='#1e293b',
-                font_family='system-ui'
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    
-    # Movies distribution
-    with col2:
-        st.markdown("#### Content by Film")
+        **Technology Stack:**
+        - **RAG (Retrieval-Augmented Generation)**: Combines search with AI generation
+        - **Local LLM**: Phi-2 model runs entirely on your device
+        - **Vector Database**: PostgreSQL with pgvector for similarity search
+        - **Embeddings**: Sentence transformers for semantic understanding
         
-        movie_counts = Counter(movies_data)
-        if movie_counts:
-            fig = px.bar(
-                x=list(movie_counts.keys()),
-                y=list(movie_counts.values()),
-                color_discrete_sequence=['#3b82f6', '#06b6d4', '#10b981']
-            )
-            fig.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                font_color='#1e293b',
-                font_family='system-ui',
-                xaxis_title="Film",
-                yaxis_title="Character Count"
-            )
-            fig.update_xaxes(tickangle=45)
-            st.plotly_chart(fig, use_container_width=True)
+        **Voice Features:**
+        - **Speech-to-Text**: Use your microphone to speak to characters
+        - **Text-to-Speech**: Characters can respond through your speakers
+        
+        **Data Source:**
+        - Original Star Wars Trilogy scripts (Episodes IV, V, VI)
+        - Clean, authentic dialogue from the movies
+        
+        This system ensures responses stay true to each character's personality and speaking style!
+        """)
 
+def voice_input():
+    """Handle voice input using speech recognition."""
+    recognizer = sr.Recognizer()
+    
+    with sr.Microphone() as source:
+        st.info("🎤 Listening... Speak now!")
+        try:
+            audio = recognizer.listen(source, timeout=5, phrase_time_limit=10)
+            text = recognizer.recognize_google(audio)
+            return text
+        except sr.WaitTimeoutError:
+            st.warning("No speech detected. Please try again.")
+            return None
+        except sr.UnknownValueError:
+            st.warning("Could not understand audio. Please try again.")
+            return None
+        except Exception as e:
+            st.error(f"Voice input error: {e}")
+            return None
 
-def display_session_history_sidebar():
-    """Display session history in sidebar."""
-    st.sidebar.markdown("## Session History")
-    
-    if "session_history" not in st.session_state:
-        st.session_state.session_history = []
-    
-    if st.session_state.session_history:
-        for i, session in enumerate(reversed(st.session_state.session_history[-10:])):
-            with st.sidebar.expander(f"Session {len(st.session_state.session_history) - i}"):
-                st.markdown(f"**Character:** {session.get('character', 'Unknown')}")
-                st.markdown(f"**Messages:** {session.get('message_count', 0)}")
-                st.markdown(f"**Time:** {session.get('timestamp', '')}")
-                
-                if st.button(f"Export Session {len(st.session_state.session_history) - i}", key=f"export_{i}"):
-                    # Export functionality would go here
-                    st.success("Export feature coming soon!")
-    else:
-        st.sidebar.info("No session history yet")
-    
-    if st.sidebar.button("Clear History"):
-        st.session_state.session_history = []
-        st.rerun()
-
-
-def display_dashboard_readme():
-    """Display comprehensive dashboard readme information."""
-    st.markdown("""
-    ## 📖 Dashboard User Guide
-    
-    ### 🔄 **RAG Processing Pipeline**
-    
-    **1. Query Processing** → Your message is analyzed and prepared for embedding
-    
-    **2. Text Embedding** → Converts your text into a 384-dimensional vector using Sentence-BERT
-    
-    **3. Vector Search** → Searches 1000+ dialogue embeddings using cosine similarity
-    
-    **4. Context Retrieval** → Selects the most relevant 3-6 dialogue lines (similarity > 0.2)
-    
-    **5. LLM Generation** → GPT processes retrieved context to generate character-authentic responses
-    
-    **6. Response Output** → Delivers the response with explainability data and metrics
-    
-    ---
-    
-    ### 🎯 **How to Use This Dashboard**
-    
-    #### **Character Selection**
-    - Choose from 20+ characters ranked by dialogue volume
-    - Character cards show dialogue count and film appearances
-    - Switch characters anytime to clear conversation history
-    
-    #### **Chat Interface**
-    - Type your message in the text area
-    - Click "Send Message" to generate character responses
-    - Use suggested conversation starters for inspiration
-    
-    #### **Explainability Features**
-    - Toggle "Show Explainability Panels" in sidebar to see:
-      - Retrieved dialogue context that influenced the response
-      - Similarity scores showing relevance of each context line
-      - Processing metrics (response time, prompt length, etc.)
-    
-    #### **Analytics & Monitoring**
-    - Real-time system metrics in sidebar (dialogue lines, characters, films)
-    - Character analytics charts (when enabled)
-    - Session history with export options
-    
-    ---
-    
-    ### 🛠️ **Technical Architecture**
-    
-    **Frontend**: Streamlit dashboard with interactive analytics
-    
-    **Backend**: FastAPI with async processing and health monitoring
-    
-    **Database**: PostgreSQL with pgvector extension for vector similarity search
-    
-    **AI Models**: 
-    - Embedding: `all-MiniLM-L6-v2` (384-dimensional vectors)
-    - LLM: OpenAI GPT-3.5-turbo for response generation
-    
-    **Data**: Original Star Wars trilogy scripts with 1000+ character dialogues
-    
-    **Deployment**: Docker Compose with separated services for scalability
-    
-    ---
-    
-    ### 💡 **Tips for Best Results**
-    
-    - **Be specific**: Ask about character motivations, relationships, or experiences
-    - **Reference the films**: Characters respond better to Star Wars context
-    - **Check explainability**: See which dialogue lines influenced responses
-    - **Try different characters**: Each has unique dialogue patterns and personality
-    - **Use system info**: Monitor performance and data coverage in sidebar
-    """)
-
+def text_to_speech(text, character):
+    """Convert text to speech."""
+    try:
+        engine = pyttsx3.init()
+        
+        # Set voice properties based on character
+        if character == "VADER":
+            engine.setProperty('rate', 120)
+            engine.setProperty('volume', 0.8)
+        elif character == "YODA":
+            engine.setProperty('rate', 100)
+            engine.setProperty('volume', 0.7)
+        else:
+            engine.setProperty('rate', 150)
+            engine.setProperty('volume', 0.9)
+        
+        # Run TTS in a separate thread to avoid blocking
+        def speak():
+            engine.say(text)
+            engine.runAndWait()
+        
+        thread = threading.Thread(target=speak)
+        thread.start()
+        
+        return True
+    except Exception as e:
+        st.error(f"TTS error: {e}")
+        return False
 
 def main():
-    """Main Star Wars RAG dashboard interface."""
-    # Dashboard Header with Readme Button
-    header_col1, header_col2 = st.columns([4, 1])
-    
-    with header_col1:
-        st.markdown('<h1 class="dashboard-header">Star Wars RAG Dashboard</h1>', unsafe_allow_html=True)
-        st.markdown("""
-        <div style="text-align: center; margin-bottom: 1rem; color: #64748b; font-size: 0.9rem;">
-            AI-powered character interaction with retrieval-augmented generation
-        </div>
+    """Main dashboard function."""
+    # Load background
+    background_b64 = load_background_image()
+    if background_b64:
+        st.markdown(f"""
+        <style>
+        .main {{
+            background-image: url('data:image/jpeg;base64,{background_b64}');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }}
+        </style>
         """, unsafe_allow_html=True)
     
-    with header_col2:
-        st.markdown("<br>", unsafe_allow_html=True)  # Spacing
-        if st.button("📖 Dashboard Readme", help="Complete guide to dashboard features and usage"):
-            st.session_state.show_readme = True
+    # Header
+    st.title("⭐ Star Wars Character Chat")
+    st.markdown("Chat with your favorite Star Wars characters using AI and voice!")
     
-    # Show readme popup if requested
-    if st.session_state.get("show_readme", False):
-        with st.expander("📖 Dashboard User Guide", expanded=True):
-            display_dashboard_readme()
-            if st.button("Close Guide"):
-                st.session_state.show_readme = False
-                st.rerun()
+    # Info button
+    display_info_modal()
     
     # Check API health
-    health = get_api_health()
-    system_info = get_system_info()
-    
-    if health.get("status") != "healthy":
-        st.error("API connection failed. Please ensure the backend service is running.")
+    if not check_api_health():
+        st.error("🚨 API is not responding. Please ensure the backend is running.")
         st.stop()
     
-    # Initialize session state
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-    if "current_character" not in st.session_state:
-        st.session_state.current_character = None
-    if "session_id" not in st.session_state:
-        st.session_state.session_id = str(uuid.uuid4())
+    # Character selection
+    st.markdown("### Choose Your Character")
+    characters = get_available_characters()
     
-    # Simplified Sidebar
-    with st.sidebar:
-        st.markdown("## System Status")
+    if characters:
+        col1, col2 = st.columns([3, 1])
         
-        # Key metrics only
-        st.metric("Characters", system_info.get('characters_count', 0))
-        st.metric("Dialogue Lines", system_info.get('dialogue_lines', 0))
-        status_indicator = "✅ Online" if health.get("models_loaded") else "❌ Offline"
-        st.metric("Status", status_indicator)
+        with col1:
+            selected_character = st.selectbox(
+                "Select a character to chat with:",
+                characters,
+                key="character_selector"
+            )
+            st.session_state.selected_character = selected_character
         
-        # Essential settings
-        st.markdown("## Settings")
-        show_explainability = st.checkbox("Show Explainability", value=True)
-        show_analytics = st.checkbox("Show Analytics", value=False)
-        
-        # Session management
-        display_session_history_sidebar()
-    
-    # Main layout: Character selector and chat
-    char_col, chat_col = st.columns([1, 2])
-    
-    # Character Selection Panel
-    with char_col:
-        st.markdown("### Character Selection")
-        
-        characters = get_characters()
-        if not characters:
-            st.error("No character data available")
-            st.stop()
-        
-        # Get top 20 characters by dialogue count
-        top_characters = [char for char in characters if isinstance(char, dict) and char.get('dialogue_count', 0) > 0]
-        top_characters.sort(key=lambda x: x.get('dialogue_count', 0), reverse=True)
-        top_characters = top_characters[:20]
-        
-        character_names = [char['name'] for char in top_characters]
-        
-        # Character dropdown
-        selected_character = st.selectbox(
-            "Choose a character to chat with:",
-            character_names,
-            index=0 if character_names else None,
-            help="Select from the top 20 characters with the most dialogue"
-        )
-        
-        if selected_character and selected_character != st.session_state.current_character:
-            st.session_state.current_character = selected_character
-            st.session_state.messages = []  # Clear when switching
-            st.success(f"Now chatting with {selected_character}")
-        
-        # Display character info
-        if selected_character:
-            character_data = next((char for char in top_characters if char['name'] == selected_character), {})
-            display_character_persona_header(selected_character, character_data)
-    
-    # Chat Interface
-    with chat_col:
-        if not selected_character:
-            st.info("Please select a character to start chatting")
-            return
-        
-        st.markdown('<div class="chat-interface">', unsafe_allow_html=True)
-        
-        # Simple status indicator
-        if health.get("models_loaded"):
-            st.success("✅ System Ready")
-        else:
-            st.error("❌ System Offline")
-        
-        # Chat Messages
-        if st.session_state.messages:
-            st.markdown("### Conversation")
-            
-            for message in st.session_state.messages:
-                if message["role"] == "user":
-                    st.markdown(f"""
-                    <div class="user-message">
-                        <strong>You:</strong><br>
-                        {message["content"]}
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    character = message.get("character", "Character")
-                    st.markdown(f"""
-                    <div class="character-message">
-                        <strong>{character}:</strong><br>
-                        {message["content"]}
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Show explainability panels for the last message
-                    if (show_explainability and 
-                        message == st.session_state.messages[-1] and 
-                        message.get("context_used")):
-                        
-                        with st.expander("Explainability Details", expanded=False):
-                            # Retrieved context
-                            display_retrieved_context_panel(message["context_used"])
-                            
-                            # LLM info - check both metadata and conversation_metadata
-                            metadata = message.get("metadata", {})
-                            if not metadata and message.get("conversation_metadata"):
-                                metadata = message["conversation_metadata"]
-                            
-                            if metadata:
-                                display_llm_info_panel(metadata)
-        else:
-            st.markdown(f"#### Start a conversation with {selected_character}!")
-            
-            # Top 6 conversation starters - listed vertically
-            suggestions = [
-                "Rate the cantina band's musical talent on a scale of 1-10",
-                "What's your opinion on the Death Star's interior design?",
-                "If you could choose your own theme music, what would it sound like?",
-                "What's the most ridiculous thing you've seen a Stormtrooper miss?",
-                "Explain quantum physics using only Star Wars analogies",
-                "If droids had social media, what would they post about?"
-            ]
-            
-            st.markdown("**Quick start suggestions:**")
-            
-            # Display suggestions vertically, one per row
-            for i, suggestion in enumerate(suggestions):
-                if st.button(suggestion, key=f"suggestion_{i}", use_container_width=True):
-                    st.session_state.user_input = suggestion
-                    st.rerun()
-        
-        # Chat Input
-        st.markdown("#### Your Message")
-        user_input = st.text_area(
-            "Type your message:",
-            value=st.session_state.get("user_input", ""),
-            height=80,
-            placeholder=f"Ask {selected_character} anything...",
-            key="chat_input"
-        )
-        
-        # Send button
-        if st.button("Send Message", type="primary", use_container_width=True):
-            if user_input.strip():
-                # Add user message
-                st.session_state.messages.append({
-                    "role": "user",
-                    "content": user_input,
-                    "timestamp": time.time()
-                })
-                
-                # Generate response
-                with st.spinner(f"{selected_character} is thinking..."):
-                    response_data = chat_with_api(
-                        selected_character, 
-                        user_input, 
-                        st.session_state.session_id
-                    )
-                
-                # Add character response
-                st.session_state.messages.append({
-                    "role": "character",
-                    "content": response_data.get("response", "I couldn't respond right now."),
-                    "character": selected_character,
-                    "timestamp": time.time(),
-                    "context_used": response_data.get("context_used", []),
-                    "metadata": response_data.get("metadata", {})
-                })
-                
-                # Clear input
-                st.session_state.user_input = ""
-                st.success("Response generated!")
+        with col2:
+            if st.button("🔄 Refresh Characters", key="refresh_char"):
                 st.rerun()
-            else:
-                st.warning("Please enter a message!")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
     
-    # Character Analytics (bottom panel)
-    if show_analytics:
-        st.markdown("---")
-        display_character_analytics()
+    else:
+        st.warning("No characters available. Please check the API connection.")
+        st.stop()
     
-    # Footer
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; color: #64748b; padding: 2rem;">
-        <strong>Star Wars RAG Analytics Dashboard</strong> | Advanced AI system with explainable retrieval<br>
-        <em style="color: #3b82f6;">Powered by neural embeddings and large language models</em>
-    </div>
-    """, unsafe_allow_html=True)
-
+    # Voice controls
+    st.markdown("### Voice Controls")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("🎤 Enable Voice Input", key="voice_input_btn", 
+                    help="Click to enable microphone input"):
+            st.session_state.voice_enabled = not st.session_state.voice_enabled
+    
+    with col2:
+        if st.button("🔊 Enable Voice Output", key="voice_output_btn",
+                    help="Click to enable text-to-speech"):
+            st.session_state.tts_enabled = not st.session_state.tts_enabled
+    
+    # Show voice status
+    voice_status = "✅ Enabled" if st.session_state.voice_enabled else "❌ Disabled"
+    tts_status = "✅ Enabled" if st.session_state.tts_enabled else "❌ Disabled"
+    
+    st.markdown(f"**Voice Input:** {voice_status} | **Voice Output:** {tts_status}")
+    
+    # Chat interface
+    st.markdown("### Chat with " + selected_character)
+    
+    # Display conversation history
+    if st.session_state.conversation:
+        st.markdown("#### Conversation History")
+        for i, (user_msg, char_msg) in enumerate(st.session_state.conversation):
+            with st.container():
+                st.markdown(f"**You:** {user_msg}")
+                st.markdown(f"**{selected_character}:** {char_msg}")
+                st.divider()
+    
+    # Input section
+    st.markdown("#### Send Message")
+    
+    # Voice input button
+    if st.session_state.voice_enabled:
+        if st.button("🎤 Speak", key="speak_btn", help="Click and speak"):
+            with st.spinner("Listening..."):
+                voice_text = voice_input()
+                if voice_text:
+                    st.session_state.voice_input = voice_text
+                    st.success(f"🎤 Heard: {voice_text}")
+    
+    # Text input
+    user_message = st.text_area(
+        "Type your message:",
+        value=st.session_state.get('voice_input', ''),
+        height=100,
+        key="message_input"
+    )
+    
+    # Send button
+    col1, col2 = st.columns([1, 4])
+    
+    with col1:
+        if st.button("🚀 Send", key="send_btn", disabled=not user_message.strip()):
+            if user_message.strip() and selected_character:
+                with st.spinner(f"Getting response from {selected_character}..."):
+                    response = chat_with_character(user_message, selected_character)
+                    
+                    if response:
+                        character_response = response.get('response', 'No response received.')
+                        
+                        # Add to conversation history
+                        st.session_state.conversation.append((user_message, character_response))
+                        
+                        # Text-to-speech if enabled
+                        if st.session_state.tts_enabled:
+                            text_to_speech(character_response, selected_character)
+                        
+                        # Clear input
+                        st.session_state.voice_input = ""
+                        st.rerun()
+    
+    with col2:
+        if st.button("🗑️ Clear Chat", key="clear_btn"):
+            st.session_state.conversation = []
+            st.session_state.voice_input = ""
+            st.rerun()
+    
+    # Quick start suggestions
+    st.markdown("### Quick Start Suggestions")
+    suggestions = [
+        "Tell me about the Force",
+        "What's your opinion on droids?",
+        "How did you become a Jedi?",
+        "What's your favorite ship?",
+        "Tell me about your lightsaber",
+        "What's the most important lesson you've learned?"
+    ]
+    
+    cols = st.columns(3)
+    for i, suggestion in enumerate(suggestions):
+        with cols[i % 3]:
+            if st.button(suggestion, key=f"suggestion_{i}"):
+                st.session_state.voice_input = suggestion
+                st.rerun()
 
 if __name__ == "__main__":
     main()

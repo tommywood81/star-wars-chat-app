@@ -42,4 +42,11 @@ matplotlib>=3.5.0
 seaborn>=0.11.0
 plotly>=5.0.0
 
+# Voice features
+SpeechRecognition>=3.10.0
+pyttsx3>=2.90
+pyaudio>=0.2.11
+sounddevice>=0.4.6
+scipy>=1.10.0
+
 # Note: pathlib and logging are built-in Python modules

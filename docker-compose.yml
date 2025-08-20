@@ -52,6 +52,8 @@ services:
     command: ["streamlit", "run", "src/star_wars_rag/dashboard.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
     depends_on:
       - star-wars-api
+    volumes:
+      - ./static:/app/static
     restart: unless-stopped
 
   # Original Streamlit Web Interface (optional)
