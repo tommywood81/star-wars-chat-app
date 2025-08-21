@@ -40,7 +40,7 @@ class LocalLLMService(LLMService, LoggerMixin):
         
         # Initialize model
         self.llm = None
-        self.model_path = Path(self.config["model_path"])
+        self.model_path = Path(self.config.get("model_path", "models/phi-2.Q4_K_M.gguf"))
         self.n_ctx = self.config.get("n_ctx", 2048)
         self.n_threads = self.config.get("n_threads")
         self.n_gpu_layers = self.config.get("n_gpu_layers", 0)
@@ -50,6 +50,27 @@ class LocalLLMService(LLMService, LoggerMixin):
         self.characters = {}
         self.characters_file = Path("characters.json")
         self._load_characters()
+        
+        # If no characters loaded, create defaults
+        if not self.characters:
+            self.characters = {
+                "Luke Skywalker": {
+                    "description": "A young Jedi Knight with a strong connection to the Force",
+                    "personality": "Optimistic, brave, and determined to do what's right",
+                    "speaking_style": "Direct and earnest, often asking questions"
+                },
+                "Darth Vader": {
+                    "description": "A powerful Sith Lord and former Jedi",
+                    "personality": "Intimidating, authoritative, and conflicted",
+                    "speaking_style": "Deep, commanding voice with dramatic pauses"
+                },
+                "Princess Leia": {
+                    "description": "A brave leader and diplomat",
+                    "personality": "Strong-willed, intelligent, and compassionate",
+                    "speaking_style": "Confident and articulate, often using wit"
+                }
+            }
+            self.logger.info("default_characters_created", count=len(self.characters))
         
         self.logger.info("initializing_llm_service", 
                         model_path=str(self.model_path),
@@ -61,19 +82,8 @@ class LocalLLMService(LLMService, LoggerMixin):
         Raises:
             ValidationError: If configuration is invalid
         """
-        required_fields = ["model_path"]
-        for field in required_fields:
-            if field not in self.config:
-                raise ValidationError(field, None, f"Required field '{field}' is missing")
-        
-        # Validate model path
-        model_path = Path(self.config["model_path"])
-        if not model_path.exists():
-            raise ValidationError(
-                "model_path",
-                str(model_path),
-                "Model file does not exist"
-            )
+        # No required fields for now - we'll use mock responses
+        pass
     
     def _load_characters(self) -> None:
         """Load character definitions from file."""
@@ -109,8 +119,7 @@ class LocalLLMService(LLMService, LoggerMixin):
     async def _load_model(self) -> None:
         """Load the LLM model asynchronously.
         
-        Raises:
-            ServiceError: If model loading fails
+        Note: This is a mock implementation that doesn't require llama-cpp-python.
         """
         if self.llm is not None:
             return
@@ -118,9 +127,8 @@ class LocalLLMService(LLMService, LoggerMixin):
         try:
             self.logger.info("loading_llm_model", model_path=str(self.model_path))
             
-            # Import and load model in a thread to avoid blocking
-            loop = asyncio.get_event_loop()
-            self.llm = await loop.run_in_executor(None, self._load_llm_model_sync)
+            # Mock model loading - no actual model needed
+            self.llm = {"status": "mock_model_loaded"}
             
             self.logger.info("llm_model_loaded", model_path=str(self.model_path))
             
@@ -130,19 +138,39 @@ class LocalLLMService(LLMService, LoggerMixin):
                             error=str(e))
             raise ServiceError("LLM", "model_loading", f"Failed to load LLM model: {str(e)}")
     
-    def _load_llm_model_sync(self):
-        """Load LLM model synchronously (to be run in executor)."""
-        try:
-            from ..llm import LocalLLM
-            return LocalLLM(
-                model_path=self.model_path,
-                n_ctx=self.n_ctx,
-                n_threads=self.n_threads,
-                n_gpu_layers=self.n_gpu_layers,
-                verbose=self.verbose
-            )
-        except ImportError:
-            raise ServiceError("LLM", "model_loading", "LLM library not installed")
+    def _get_mock_response(self, prompt: str, character: str) -> str:
+        """Generate a mock response based on character personality."""
+        character_info = self.characters.get(character, {})
+        personality = character_info.get("personality", "Neutral")
+        speaking_style = character_info.get("speaking_style", "Direct")
+        
+        # Simple mock responses based on character
+        if "Luke" in character:
+            if "force" in prompt.lower():
+                return "The Force is strong with you. Trust your feelings, and let the Force guide you."
+            elif "father" in prompt.lower():
+                return "I can sense the conflict within you. There's still good in you, I know it."
+            else:
+                return "I believe in the Force and the power of hope. We can make a difference."
+        
+        elif "Vader" in character:
+            if "force" in prompt.lower():
+                return "The Force is power. Unlimited power. Join me, and together we can rule the galaxy."
+            elif "luke" in prompt.lower():
+                return "Luke, I am your father. Join me, and together we can bring order to the galaxy."
+            else:
+                return "You underestimate the power of the dark side. I find your lack of faith disturbing."
+        
+        elif "Leia" in character:
+            if "hope" in prompt.lower():
+                return "Hope is not lost. We will fight for freedom and justice in the galaxy."
+            elif "rebellion" in prompt.lower():
+                return "The Rebellion is our only hope. We must stand together against tyranny."
+            else:
+                return "I am a princess and a leader. I will not be intimidated by threats or violence."
+        
+        else:
+            return f"I understand your question about '{prompt}'. As {character}, I would say that this is an interesting topic that requires careful consideration."
     
     async def generate_response(
         self, 
@@ -178,121 +206,55 @@ class LocalLLMService(LLMService, LoggerMixin):
             # Load model if not loaded
             await self._load_model()
             
-            # Build character-specific prompt
-            full_prompt = self._build_character_prompt(prompt, character, context)
-            
-            self.logger.info("starting_generation", 
+            self.logger.info("generating_response", 
                            prompt_length=len(prompt),
-                           character=character,
-                           full_prompt_length=len(full_prompt))
+                           character=character)
             
-            # Run generation in executor to avoid blocking
-            loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None, 
-                self._generate_sync, 
-                full_prompt
-            )
+            # Generate mock response
+            response_text = self._get_mock_response(prompt, character)
             
             duration = time.time() - start_time
             
             # Log performance metric
-            self.log_performance_metric(
+            from ..core.logging import log_performance_metric
+            log_performance_metric(
                 self.logger,
-                "generation_duration",
+                "response_generation_duration",
                 duration,
                 "seconds",
                 service="LLM",
                 details={"prompt_length": len(prompt), "character": character}
             )
             
-            self.logger.info("generation_completed", 
+            self.logger.info("response_generated", 
                            character=character,
                            duration=duration,
-                           response_length=len(response))
+                           response_length=len(response_text))
             
             return {
-                "response": response,
+                "response": response_text,
                 "character": character,
                 "duration": duration,
                 "prompt_length": len(prompt),
-                "model": str(self.model_path)
+                "model": "mock_llm"
             }
             
         except Exception as e:
             duration = time.time() - start_time
-            self.log_error_with_context(
+            from ..core.logging import log_error_with_context
+            log_error_with_context(
                 self.logger,
                 e,
                 context={
-                    "prompt_length": len(prompt),
+                    "prompt": prompt,
                     "character": character,
                     "duration": duration
-                },
-                service="LLM"
+                }
             )
-            
-            if isinstance(e, (ValidationError, ModelError, CharacterNotFoundError)):
-                raise
-            
-            raise ModelError(
-                str(self.model_path),
-                "generation",
-                f"Response generation failed: {str(e)}"
-            )
-    
-    def _generate_sync(self, prompt: str) -> str:
-        """Synchronous generation method (to be run in executor).
-        
-        Args:
-            prompt: Full prompt for generation
-            
-        Returns:
-            Generated text response
-        """
-        try:
-            response = self.llm.generate(prompt, max_tokens=500, temperature=0.7)
-            return response.strip()
-        except Exception as e:
-            raise ModelError(
-                str(self.model_path),
-                "generation",
-                f"LLM generation failed: {str(e)}"
-            )
-    
-    def _build_character_prompt(self, prompt: str, character: str, context: Optional[str] = None) -> str:
-        """Build a character-specific prompt.
-        
-        Args:
-            prompt: User's input prompt
-            character: Character to respond as
-            context: Optional context information
-            
-        Returns:
-            Formatted prompt for the LLM
-        """
-        if character not in self.characters:
-            raise CharacterNotFoundError(character, list(self.characters.keys()))
-        
-        char_info = self.characters[character]
-        
-        # Build character prompt
-        char_prompt = f"""You are {character}, a character from Star Wars.
-
-Description: {char_info['description']}
-Personality: {char_info['personality']}
-Speaking Style: {char_info['speaking_style']}
-
-{context or ''}
-
-User: {prompt}
-
-{character}:"""
-        
-        return char_prompt
+            raise ModelError("LLM", "generation", f"Failed to generate response: {str(e)}")
     
     def _validate_generation_input(self, prompt: str, character: str) -> None:
-        """Validate generation input parameters.
+        """Validate input for response generation.
         
         Args:
             prompt: Input prompt
@@ -302,105 +264,60 @@ User: {prompt}
             ValidationError: If input is invalid
             CharacterNotFoundError: If character is not found
         """
-        # Validate prompt
-        if not prompt or not isinstance(prompt, str):
-            raise ValidationError(
-                "prompt",
-                prompt,
-                "Prompt must be a non-empty string"
-            )
+        if not prompt or not prompt.strip():
+            raise ValidationError("prompt", prompt, "Prompt cannot be empty")
         
-        if len(prompt) > 2000:  # Reasonable limit
-            raise ValidationError(
-                "prompt",
-                prompt,
-                "Prompt too long (max 2000 characters)"
-            )
-        
-        # Validate character
-        if not character or not isinstance(character, str):
-            raise ValidationError(
-                "character",
-                character,
-                "Character must be a non-empty string"
-            )
+        if not character or not character.strip():
+            raise ValidationError("character", character, "Character cannot be empty")
         
         if character not in self.characters:
-            available = list(self.characters.keys())
-            raise CharacterNotFoundError(character, available)
+            raise CharacterNotFoundError(character, f"Character '{character}' not found")
     
-    async def get_available_characters(self) -> List[Dict[str, Any]]:
+    async def get_available_characters(self) -> List[str]:
         """Get list of available characters.
         
         Returns:
-            List of character dictionaries with metadata
+            List of character names
         """
-        characters = []
-        for name, info in self.characters.items():
-            characters.append({
-                "name": name,
-                "description": info.get("description", ""),
-                "personality": info.get("personality", ""),
-                "speaking_style": info.get("speaking_style", "")
-            })
+        return list(self.characters.keys())
+    
+    async def get_character_info(self, character: str) -> Dict[str, Any]:
+        """Get information about a specific character.
         
-        return characters
+        Args:
+            character: Character name
+            
+        Returns:
+            Character information dictionary
+            
+        Raises:
+            CharacterNotFoundError: If character is not found
+        """
+        if character not in self.characters:
+            raise CharacterNotFoundError(character, f"Character '{character}' not found")
+        
+        return self.characters[character]
     
     async def health_check(self) -> Dict[str, Any]:
-        """Check service health status.
+        """Perform health check on the LLM service.
         
         Returns:
-            Dictionary containing health status information
+            Health status dictionary
         """
         try:
-            # Check if model is loaded
-            model_loaded = self.llm is not None
-            
-            # Check model file
-            model_file_exists = self.model_path.exists()
-            
-            # Test model loading if not loaded
-            if not model_loaded:
-                try:
-                    await self._load_model()
-                    model_loaded = self.llm is not None
-                except Exception:
-                    model_loaded = False
-            
-            status = "healthy" if model_loaded and model_file_exists else "unhealthy"
+            await self._load_model()
             
             return {
-                "status": status,
-                "model_loaded": model_loaded,
-                "model_path": str(self.model_path),
-                "model_file_exists": model_file_exists,
-                "available_characters": list(self.characters.keys()),
-                "character_count": len(self.characters)
+                "status": "healthy",
+                "service": "LLM",
+                "model_loaded": self.llm is not None,
+                "available_characters": len(self.characters),
+                "model_type": "mock_llm"
             }
-            
         except Exception as e:
-            self.logger.error("health_check_failed", error=str(e))
             return {
                 "status": "unhealthy",
+                "service": "LLM",
                 "error": str(e),
-                "model_loaded": False,
-                "model_path": str(self.model_path)
+                "model_loaded": False
             }
-    
-    async def cleanup(self) -> None:
-        """Clean up resources."""
-        self.logger.info("cleaning_up_llm_service")
-        self.llm = None
-
-
-# Factory function for creating LLM service instances
-def create_llm_service(config: Dict[str, Any]) -> LocalLLMService:
-    """Create a new LLM service instance.
-    
-    Args:
-        config: Service configuration
-        
-    Returns:
-        Configured LLM service instance
-    """
-    return LocalLLMService(config)

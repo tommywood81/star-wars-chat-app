@@ -139,7 +139,8 @@ class StarWarsChatService(ChatService, LoggerMixin):
             duration = time.time() - start_time
             
             # Log performance metric
-            self.log_performance_metric(
+            from ..core.logging import log_performance_metric
+            log_performance_metric(
                 self.logger,
                 "audio_message_processing_duration",
                 duration,
@@ -168,7 +169,8 @@ class StarWarsChatService(ChatService, LoggerMixin):
             
         except Exception as e:
             duration = time.time() - start_time
-            self.log_error_with_context(
+            from ..core.logging import log_error_with_context
+            log_error_with_context(
                 self.logger,
                 e,
                 context={
@@ -228,7 +230,8 @@ class StarWarsChatService(ChatService, LoggerMixin):
             duration = time.time() - start_time
             
             # Log performance metric
-            self.log_performance_metric(
+            from ..core.logging import log_performance_metric
+            log_performance_metric(
                 self.logger,
                 "text_message_processing_duration",
                 duration,
@@ -255,7 +258,8 @@ class StarWarsChatService(ChatService, LoggerMixin):
             
         except Exception as e:
             duration = time.time() - start_time
-            self.log_error_with_context(
+            from ..core.logging import log_error_with_context
+            log_error_with_context(
                 self.logger,
                 e,
                 context={

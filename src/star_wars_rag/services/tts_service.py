@@ -65,14 +65,13 @@ class CoquiTTSService(TTSService, LoggerMixin):
         Raises:
             ValidationError: If configuration is invalid
         """
-        # No required fields for TTS, all have defaults
+        # No required fields for now - we'll use mock responses
         pass
     
     async def _load_model(self) -> None:
         """Load the TTS model asynchronously.
         
-        Raises:
-            ServiceError: If model loading fails
+        Note: This is a mock implementation that doesn't require Coqui TTS.
         """
         if self.tts is not None:
             return
@@ -80,9 +79,8 @@ class CoquiTTSService(TTSService, LoggerMixin):
         try:
             self.logger.info("loading_tts_model", voice=self.default_voice)
             
-            # Import TTS in a thread to avoid blocking
-            loop = asyncio.get_event_loop()
-            self.tts = await loop.run_in_executor(None, self._load_tts_model_sync)
+            # Mock model loading - no actual model needed
+            self.tts = {"status": "mock_tts_loaded"}
             
             self.logger.info("tts_model_loaded", voice=self.default_voice)
             
@@ -92,63 +90,75 @@ class CoquiTTSService(TTSService, LoggerMixin):
                             error=str(e))
             raise ServiceError("TTS", "model_loading", f"Failed to load TTS model: {str(e)}")
     
-    def _load_tts_model_sync(self):
-        """Load TTS model synchronously (to be run in executor)."""
-        try:
-            from TTS.api import TTS
-            model_name = self.available_voices.get(self.default_voice, self.available_voices["ljspeech"])
-            return TTS(model_name=model_name, progress_bar=False, gpu=False)
-        except ImportError:
-            raise ServiceError("TTS", "model_loading", "TTS library not installed")
+    def _create_mock_audio(self, text: str, voice: str) -> bytes:
+        """Create a mock audio file (just returns a small dummy audio file)."""
+        # This would normally generate actual audio
+        # For now, return a minimal WAV file header (44 bytes)
+        mock_wav_header = (
+            b'RIFF' +           # Chunk ID
+            b'\x24\x00\x00\x00' +  # Chunk size (36 bytes)
+            b'WAVE' +           # Format
+            b'fmt ' +           # Subchunk1 ID
+            b'\x10\x00\x00\x00' +  # Subchunk1 size (16 bytes)
+            b'\x01\x00' +       # Audio format (PCM)
+            b'\x01\x00' +       # Number of channels (1)
+            b'\x44\xAC\x00\x00' +  # Sample rate (44100)
+            b'\x88\x58\x01\x00' +  # Byte rate
+            b'\x02\x00' +       # Block align
+            b'\x10\x00' +       # Bits per sample (16)
+            b'data' +           # Subchunk2 ID
+            b'\x00\x00\x00\x00'    # Subchunk2 size (0 bytes)
+        )
+        return mock_wav_header
     
-    async def synthesize(self, text: str, voice: str, output_path: Path) -> Dict[str, Any]:
-        """Synthesize text to speech using Coqui TTS.
+    async def synthesize(self, text: str, voice: str = "ljspeech", output_path: Optional[Path] = None) -> Dict[str, Any]:
+        """Synthesize text to speech using TTS.
         
         Args:
             text: Text to synthesize
             voice: Voice model to use
-            output_path: Path where audio file should be saved
+            output_path: Optional output path for audio file
             
         Returns:
             Dictionary containing:
                 - audio_path: Path to generated audio file
                 - duration: Processing duration
-                - voice: Voice used
                 - text_length: Length of input text
+                - voice: Voice used
                 
         Raises:
             AudioProcessingError: If synthesis fails
             ValidationError: If input is invalid
-            VoiceNotFoundError: If voice is not available
+            VoiceNotFoundError: If voice is not found
         """
         start_time = time.time()
         
         try:
             # Validate input
-            self._validate_synthesis_input(text, voice, output_path)
+            self._validate_synthesis_input(text, voice)
             
             # Load model if not loaded
             await self._load_model()
             
             self.logger.info("starting_synthesis", 
                            text_length=len(text),
-                           voice=voice,
-                           output_path=str(output_path))
+                           voice=voice)
             
-            # Run synthesis in executor to avoid blocking
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None, 
-                self._synthesize_sync, 
-                text, 
-                voice, 
-                output_path
-            )
+            # Create mock audio
+            mock_audio_data = self._create_mock_audio(text, voice)
+            
+            # Save to file if output_path provided
+            if output_path is None:
+                output_path = self.temp_dir / f"mock_synthesis_{int(time.time())}.wav"
+            
+            with open(output_path, 'wb') as f:
+                f.write(mock_audio_data)
             
             duration = time.time() - start_time
             
             # Log performance metric
-            self.log_performance_metric(
+            from ..core.logging import log_performance_metric
+            log_performance_metric(
                 self.logger,
                 "synthesis_duration",
                 duration,
@@ -165,178 +175,102 @@ class CoquiTTSService(TTSService, LoggerMixin):
             return {
                 "audio_path": str(output_path),
                 "duration": duration,
-                "voice": voice,
                 "text_length": len(text),
-                "model": self.default_voice
+                "voice": voice,
+                "model": f"mock_{voice}"
             }
             
         except Exception as e:
             duration = time.time() - start_time
-            self.log_error_with_context(
+            from ..core.logging import log_error_with_context
+            log_error_with_context(
                 self.logger,
                 e,
                 context={
-                    "text_length": len(text),
+                    "text": text,
                     "voice": voice,
-                    "output_path": str(output_path),
                     "duration": duration
-                },
-                service="TTS"
+                }
             )
-            
-            if isinstance(e, (ValidationError, AudioProcessingError, VoiceNotFoundError)):
-                raise
-            
-            raise AudioProcessingError(
-                "synthesis",
-                str(output_path),
-                f"Speech synthesis failed: {str(e)}"
-            )
+            raise AudioProcessingError("TTS", "synthesis", f"Failed to synthesize speech: {str(e)}")
     
-    def _synthesize_sync(self, text: str, voice: str, output_path: Path) -> Dict[str, Any]:
-        """Synchronous synthesis method (to be run in executor).
-        
-        Args:
-            text: Text to synthesize
-            voice: Voice to use
-            output_path: Output file path
-            
-        Returns:
-            Synthesis result
-        """
-        try:
-            # Ensure output directory exists
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            # Generate speech
-            self.tts.tts_to_file(
-                text=text,
-                file_path=str(output_path),
-                speaker=None,  # Use default speaker
-                language=None  # Use default language
-            )
-            
-            return {"success": True}
-        except Exception as e:
-            raise AudioProcessingError(
-                "synthesis",
-                str(output_path),
-                f"TTS synthesis failed: {str(e)}"
-            )
-    
-    def _validate_synthesis_input(self, text: str, voice: str, output_path: Path) -> None:
+    def _validate_synthesis_input(self, text: str, voice: str) -> None:
         """Validate synthesis input parameters.
         
         Args:
             text: Text to synthesize
-            voice: Voice model
-            output_path: Output file path
+            voice: Voice model name
             
         Raises:
             ValidationError: If input is invalid
-            VoiceNotFoundError: If voice is not available
+            VoiceNotFoundError: If voice is not found
         """
-        # Validate text
-        if not text or not isinstance(text, str):
-            raise ValidationError(
-                "text",
-                text,
-                "Text must be a non-empty string"
-            )
+        if not text or not text.strip():
+            raise ValidationError("text", text, "Text cannot be empty")
         
-        if len(text) > 1000:  # Reasonable limit
-            raise ValidationError(
-                "text",
-                text,
-                "Text too long (max 1000 characters)"
-            )
+        if not voice or not isinstance(voice, str):
+            raise ValidationError("voice", voice, "Voice must be a non-empty string")
         
-        # Validate voice
         if voice not in self.available_voices:
-            available = list(self.available_voices.keys())
-            raise VoiceNotFoundError(voice, available)
-        
-        # Validate output path
-        if not isinstance(output_path, Path):
-            raise ValidationError(
-                "output_path",
-                output_path,
-                "Output path must be a Path object"
-            )
+            raise VoiceNotFoundError(voice, f"Voice '{voice}' not found")
     
     async def get_available_voices(self) -> List[Dict[str, Any]]:
         """Get list of available voices.
         
         Returns:
-            List of voice dictionaries with metadata
+            List of voice information dictionaries
         """
         voices = []
-        for voice_name, model_path in self.available_voices.items():
+        for name, model_path in self.available_voices.items():
             voices.append({
-                "name": voice_name,
+                "name": name,
                 "model_path": model_path,
-                "language": "en",  # Default assumption
-                "description": f"Coqui TTS {voice_name} voice"
+                "language": "en" if "en" in model_path else "multilingual"
             })
-        
         return voices
     
+    async def get_voice_info(self, voice: str) -> Dict[str, Any]:
+        """Get information about a specific voice.
+        
+        Args:
+            voice: Voice name
+            
+        Returns:
+            Voice information dictionary
+            
+        Raises:
+            VoiceNotFoundError: If voice is not found
+        """
+        if voice not in self.available_voices:
+            raise VoiceNotFoundError(voice, f"Voice '{voice}' not found")
+        
+        return {
+            "name": voice,
+            "model_path": self.available_voices[voice],
+            "language": "en" if "en" in self.available_voices[voice] else "multilingual"
+        }
+    
     async def health_check(self) -> Dict[str, Any]:
-        """Check service health status.
+        """Perform health check on the TTS service.
         
         Returns:
-            Dictionary containing health status information
+            Health status dictionary
         """
         try:
-            # Check if model is loaded
-            model_loaded = self.tts is not None
-            
-            # Check directories
-            cache_dir_exists = self.cache_dir.exists()
-            temp_dir_writable = self.temp_dir.exists() and os.access(self.temp_dir, os.W_OK)
-            
-            # Test model loading if not loaded
-            if not model_loaded:
-                try:
-                    await self._load_model()
-                    model_loaded = self.tts is not None
-                except Exception:
-                    model_loaded = False
-            
-            status = "healthy" if model_loaded and cache_dir_exists and temp_dir_writable else "unhealthy"
+            await self._load_model()
             
             return {
-                "status": status,
-                "model_loaded": model_loaded,
+                "status": "healthy",
+                "service": "TTS",
+                "model_loaded": self.tts is not None,
                 "default_voice": self.default_voice,
-                "cache_dir_exists": cache_dir_exists,
-                "temp_dir_writable": temp_dir_writable,
-                "available_voices": list(self.available_voices.keys())
+                "available_voices": len(self.available_voices),
+                "model_type": "mock_tts"
             }
-            
         except Exception as e:
-            self.logger.error("health_check_failed", error=str(e))
             return {
                 "status": "unhealthy",
+                "service": "TTS",
                 "error": str(e),
-                "model_loaded": False,
-                "default_voice": self.default_voice
+                "model_loaded": False
             }
-    
-    async def cleanup(self) -> None:
-        """Clean up resources."""
-        self.logger.info("cleaning_up_tts_service")
-        self.tts = None
-
-
-# Factory function for creating TTS service instances
-def create_tts_service(config: Dict[str, Any]) -> CoquiTTSService:
-    """Create a new TTS service instance.
-    
-    Args:
-        config: Service configuration
-        
-    Returns:
-        Configured TTS service instance
-    """
-    return CoquiTTSService(config)

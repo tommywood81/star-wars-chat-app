@@ -1,13 +1,9 @@
-# Core FastAPI and web framework
+# Minimal LLM requirements - only essential packages
 fastapi==0.95.2
-uvicorn[standard]==0.22.0
+uvicorn==0.22.0
 pydantic==1.10.7
 python-multipart==0.0.6
-
-# Data processing
-pandas==2.0.3
-numpy==1.22.0
-
-# Basic dependencies
 requests==2.31.0
-aiohttp==3.8.5
+
+# Note: llama-cpp-python will be installed separately if needed
+# For now, we'll use a mock LLM service for faster builds
