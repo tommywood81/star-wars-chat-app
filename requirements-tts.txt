@@ -1,0 +1,12 @@
+# Core FastAPI and web framework
+fastapi==0.95.2
+uvicorn[standard]==0.22.0
+pydantic==1.10.7
+python-multipart==0.0.6
+
+# Text-to-Speech (Coqui TTS) - CPU only
+TTS==0.22.0
+
+# Basic dependencies
+numpy==1.22.0
+requests==2.31.0
