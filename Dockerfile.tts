@@ -1,0 +1,47 @@
+# TTS Service Dockerfile
+FROM python:3.10-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies (CPU wheels for Torch)
+RUN pip install --no-cache-dir \
+    fastapi==0.111.0 \
+    "uvicorn[standard]==0.30.1" \
+    TTS==0.22.0 \
+    torch==2.3.1+cpu \
+    torchaudio==2.3.1+cpu \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Copy application code
+COPY src/ /app/src/
+COPY models/ /app/models/
+COPY static/ /app/static/
+
+# Create necessary directories
+RUN mkdir -p /app/temp /app/logs /app/static/audio
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV TTS_CACHE_DIR=/app/models/tts
+ENV DEFAULT_VOICE=ljspeech
+ENV TEMP_DIR=/app/temp
+
+# Expose port
+EXPOSE 5002
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:5002/health || exit 1
+
+# Run the application
+CMD ["uvicorn", "src.star_wars_rag.tts_service:app", "--host", "0.0.0.0", "--port", "5002"]

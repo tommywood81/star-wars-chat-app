@@ -1,0 +1,323 @@
+Here’s a full deployment plan for your Star Wars chat app, with speech-to-text (STT), text-to-speech (TTS), and the Phi-2 LLM all running in separate containers. This way you keep things modular, easier to debug, and more secure.
+
+🚀 Deployment Plan – Star Wars Chat App (STT + TTS + Phi-2)
+
+
+1. Overall Architecture
+
+
+We’ll run 3 main services in separate containers:
+
+STT Service (Speech-to-Text)
+
+Converts microphone input into text.
+
+Example: whisper.cpp or OpenAI Whisper model (fast + accurate).
+
+TTS Service (Text-to-Speech)
+
+Converts model responses into character-style voices.
+
+Example: Coqui TTS or Piper TTS (lightweight + runs locally).
+
+LLM Service (Phi-2)
+
+Handles chat responses as Star Wars characters.
+
+Already working in your setup.
+
+
+
+All services talk over a REST API (or gRPC if you want lower latency).
+
+A frontend container (React, Next.js, or dashboard UI) orchestrates the flow:
+
+Mic → STT → Phi-2 → TTS → Speaker output.
+
+2. Container Layout
+starwars-chat-app/
+│
+├── docker-compose.yml
+│
+├── stt-service/ # Whisper container
+│ ├── Dockerfile
+│ └── app.py # FastAPI endpoint for STT
+│
+├── tts-service/ # Coqui TTS container
+│ ├── Dockerfile
+│ └── app.py # FastAPI endpoint for TTS
+│
+├── llm-service/ # Phi-2 container
+│ ├── Dockerfile
+│ └── app.py # FastAPI endpoint for LLM
+│
+└── frontend/ # Chat UI container
+├── Dockerfile
+└── index.html / React code
+3. Example 
+docker-compose.yml
+version: "3.9"
+services:
+stt:
+build: ./stt-service
+container_name: stt_service
+ports:
+- "5001:5001"
+
+tts:
+build: ./tts-service
+container_name: tts_service
+ports:
+- "5002:5002"
+
+llm:
+build: ./llm-service
+container_name: llm_service
+ports:
+- "5003:5003"
+
+frontend:
+build: ./frontend
+container_name: frontend_service
+ports:
+- "3000:3000"
+depends_on:
+- stt
+- tts
+- llm
+
+4. Service Details
+
+
+🗣️ STT Service (Whisper + FastAPI)
+stt-service/app.py
+
+from fastapi import FastAPI, UploadFile
+import subprocess
+
+app = FastAPI()
+
+@app.post("/transcribe")
+async def transcribe(audio: UploadFile):
+# Save audio
+with open("input.wav", "wb") as f:
+f.write(await audio.read())
+
+# Run whisper.cpp or whisper library
+result = subprocess.run(["whisper", "input.wav", "--model", "base"], capture_output=True, text=True)
+return {"text": result.stdout.strip()}
+
+🔊 TTS Service (Coqui TTS + FastAPI)
+
+
+tts-service/app.py
+
+from fastapi import FastAPI
+from TTS.api import TTS
+import uvicorn
+
+app = FastAPI()
+tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False, gpu=False)
+
+@app.get("/speak")
+def speak(text: str):
+wav_path = "output.wav"
+tts.tts_to_file(text=text, file_path=wav_path)
+return {"audio_file": wav_path}
+
+🤖 LLM Service (Phi-2 + FastAPI)
+
+
+llm-service/app.py
+
+from fastapi import FastAPI
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+app = FastAPI()
+model = AutoModelForCausalLM.from_pretrained("microsoft/phi-2", device_map="auto")
+tokenizer = AutoTokenizer.from_pretrained("microsoft/phi-2")
+
+@app.post("/chat")
+def chat(input: dict):
+prompt = input["prompt"]
+inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+outputs = model.generate(**inputs, max_new_tokens=200)
+text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+return {"response": text}
+
+5. Flow of Data
+Frontend records audio → sends .wav to STT service.
+
+STT service → returns text → send text to LLM service (Phi-2).
+
+LLM service → returns character response.
+
+Frontend sends response text → TTS service.
+
+TTS service → generates .wav → frontend plays audio.
+
+6. Why Separate Containers?
+Security: If TTS or STT crashes, it doesn’t take down the LLM.
+
+Scaling: You can scale STT separately (e.g., multiple users talking).
+
+Flexibility: Swap out TTS voices or upgrade STT without touching the LLM.
+
+Portfolio value: Shows professional microservices design.
+
+✅ With this plan, you’ll have a modular, production-style chat app
+
+Awesome — here are all four Dockerfiles examples (one per service) ready to copy-paste. Keep the file names/paths exactly as shown.
+
+stt-service/Dockerfile
+ (Whisper STT, FastAPI, CPU-only)
+# stt-service/Dockerfile
+FROM python:3.10-slim
+
+# System deps (ffmpeg needed by Whisper)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+ffmpeg \
+&& rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Python deps (CPU wheels for Torch)
+RUN pip install --no-cache-dir \
+fastapi==0.111.0 \
+"uvicorn[standard]==0.30.1" \
+openai-whisper==20231117 \
+torch==2.3.1+cpu \
+torchaudio==2.3.1+cpu \
+--index-url https://download.pytorch.org/whl/cpu
+
+# Copy your FastAPI app from stt-service/app.py (from the previous message)
+COPY app.py /app/app.py
+
+EXPOSE 5001
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5001"]
+tts-service/Dockerfile
+ (Coqui TTS, FastAPI, CPU-only)
+# tts-service/Dockerfile
+FROM python:3.10-slim
+
+# System deps (ffmpeg recommended)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+ffmpeg \
+&& rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Python deps (pin to known-good combo, CPU wheels for Torch)
+RUN pip install --no-cache-dir \
+fastapi==0.111.0 \
+"uvicorn[standard]==0.30.1" \
+TTS==0.22.0 \
+torch==2.3.1+cpu \
+torchaudio==2.3.1+cpu \
+--index-url https://download.pytorch.org/whl/cpu
+
+# Optional: reduce model download time by caching at build (comment out if you prefer runtime download)
+# RUN python -c "from TTS.api import TTS; TTS('tts_models/en/ljspeech/tacotron2-DDC')"
+
+# Copy your FastAPI app from tts-service/app.py (from the previous message)
+COPY app.py /app/app.py
+
+EXPOSE 5002
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5002"]
+
+llm-service/Dockerfile
+ (Phi-2 via Transformers, FastAPI, CPU-only)
+# llm-service/Dockerfile
+FROM python:3.10-slim
+
+# (Optional) git + git-lfs help with HF model pulls; not strictly required but nice to have
+RUN apt-get update && apt-get install -y --no-install-recommends \
+git git-lfs \
+&& git lfs install \
+&& rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Where Hugging Face caches models (mount a volume here for persistence)
+ENV HF_HOME=/models/hf
+VOLUME ["/models/hf"]
+
+# Python deps
+RUN pip install --no-cache-dir \
+fastapi==0.111.0 \
+"uvicorn[standard]==0.30.1" \
+transformers==4.42.3 \
+accelerate==0.33.0 \
+sentencepiece==0.2.0 \
+safetensors==0.4.3 \
+torch==2.3.1+cpu \
+--index-url https://download.pytorch.org/whl/cpu
+
+# (Optional) Pre-pull model weights at build time; comment out if you prefer first-run download
+# RUN python - <<'PY'
+# from transformers import AutoModelForCausalLM, AutoTokenizer
+# m = "microsoft/phi-2"
+# tok = AutoTokenizer.from_pretrained(m)
+# mdl = AutoModelForCausalLM.from_pretrained(m)
+# print("Model cached")
+# PY
+
+# Copy your FastAPI app from llm-service/app.py (from the previous message)
+COPY app.py /app/app.py
+
+EXPOSE 5003
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5003"]
+
+frontend/Dockerfile
+ (generic Node build → static serve on port 3000)
+Works great for Vite/CRA-style
+
+frontends that output to dist or build.
+
+If you’re using Next.js (SSR), swap the CMD to npm start and make sure your package.json has the right scripts.
+
+# frontend/Dockerfile
+
+# --- Build stage ---
+FROM node:20-alpine AS build
+WORKDIR /app
+
+# Install deps
+COPY package*.json ./
+RUN npm ci
+
+# Copy source and build
+COPY . .
+# For Vite, outputs to /app/dist
+# For CRA, outputs to /app/build (adjust the second stage if needed)
+RUN npm run build
+
+# --- Run stage (static server) ---
+FROM node:20-alpine
+WORKDIR /app
+
+# Lightweight static file server
+RUN npm i -g serve@14.2.3
+
+# Copy built assets from the build stage
+# Default assumes Vite (dist). If CRA, change to /app/build below and in CMD.
+COPY --from=build /app/dist /app/dist
+
+EXPOSE 3000
+# For Vite build output:
+CMD ["serve", "-s", "dist", "-l", "3000"]
+
+# If using CRA instead, replace the last two lines with:
+# COPY --from=build /app/build /app/build
+# CMD ["serve", "-s", "build", "-l", "3000"]
+
+Quick tips
+Make sure your app.py files from the previous message are present in each service folder (stt-service/app.py, tts-service/app.py, llm-service/app.py).
+
+For persistent model caching, mount volumes:
+
+llm-service: mount a host folder to /models/hf.
+
+tts-service: you can also mount a folder like /models/tts and set TTS_CACHE_DIR env if you want.
+
+On low-RAM droplets, stick to CPU builds (already configured above). If you add a GPU later, switch the Torch wheels and base images accordingly.
