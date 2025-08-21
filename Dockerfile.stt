@@ -1,4 +1,4 @@
-# STT Service Dockerfile
+# STT Service Dockerfile - CPU Only
 FROM python:3.10-slim
 
 # Install system dependencies
@@ -13,9 +13,8 @@ WORKDIR /app
 # Copy requirements first for better caching
 COPY requirements-stt.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements-stt.txt && \
-    pip install --no-cache-dir torch==2.0.1+cpu torchaudio==2.0.1+cpu --index-url https://download.pytorch.org/whl/cpu
+# Install Python dependencies (CPU only, no PyTorch)
+RUN pip install --no-cache-dir -r requirements-stt.txt
 
 # Copy application code
 COPY src/ /app/src/

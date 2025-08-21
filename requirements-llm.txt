@@ -4,24 +4,12 @@ uvicorn[standard]==0.22.0
 pydantic==1.10.7
 python-multipart==0.0.6
 
-# LLM and AI
-transformers==4.30.2
-accelerate==0.20.3
-sentencepiece==0.1.99
-safetensors==0.3.1
+# LLM and AI (CPU only)
 llama-cpp-python==0.2.11
-
-# PyTorch (CPU version) - will be installed separately
-# torch==2.0.1+cpu
-# torchaudio==2.0.1+cpu
-# --index-url https://download.pytorch.org/whl/cpu
 
 # Data processing
 pandas==2.0.3
 numpy==1.22.0
-
-# Embeddings and similarity
-sentence-transformers==2.2.2
 
 # Basic dependencies
 requests==2.31.0
