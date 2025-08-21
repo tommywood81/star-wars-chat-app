@@ -6,6 +6,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     git-lfs \
     curl \
+    build-essential \
+    cmake \
     && git lfs install \
     && rm -rf /var/lib/apt/lists/*
 
