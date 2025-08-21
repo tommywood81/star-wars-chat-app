@@ -4,9 +4,6 @@ uvicorn[standard]==0.22.0
 pydantic==1.10.7
 python-multipart==0.0.6
 
-# LLM and AI (CPU only)
-llama-cpp-python==0.2.11
-
 # Data processing
 pandas==2.0.3
 numpy==1.22.0
