@@ -1,0 +1,17 @@
+# Core FastAPI and web framework
+fastapi==0.95.2
+uvicorn[standard]==0.22.0
+pydantic==1.10.7
+python-multipart==0.0.6
+
+# Speech-to-Text (Whisper)
+openai-whisper==20231117
+
+# PyTorch (CPU version) - will be installed separately
+# torch==2.0.1+cpu
+# torchaudio==2.0.1+cpu
+# --index-url https://download.pytorch.org/whl/cpu
+
+# Basic dependencies
+numpy==1.22.0
+requests==2.31.0

@@ -4,12 +4,6 @@ uvicorn[standard]==0.22.0
 pydantic==1.10.7
 python-multipart==0.0.6
 
-# Speech-to-Text (Whisper)
-openai-whisper==20231117
-
-# Text-to-Speech (Coqui TTS)
-TTS==0.22.0
-
 # LLM and AI
 transformers==4.30.2
 accelerate==0.20.3
@@ -17,7 +11,7 @@ sentencepiece==0.1.99
 safetensors==0.3.1
 llama-cpp-python==0.2.11
 
-# PyTorch (CPU version for production) - install separately
+# PyTorch (CPU version) - will be installed separately
 # torch==2.0.1+cpu
 # torchaudio==2.0.1+cpu
 # --index-url https://download.pytorch.org/whl/cpu
@@ -29,22 +23,6 @@ numpy==1.22.0
 # Embeddings and similarity
 sentence-transformers==2.2.2
 
-# Web scraping and data extraction
+# Basic dependencies
 requests==2.31.0
 aiohttp==3.8.5
-
-# Configuration and environment
-python-dotenv==1.0.0
-pydantic-settings==2.0.3
-
-# Logging
-structlog==23.1.0
-
-# Testing
-pytest==7.4.0
-pytest-asyncio==0.21.1
-httpx==0.24.1
-
-# Development tools
-black==23.7.0
-flake8==6.0.0
