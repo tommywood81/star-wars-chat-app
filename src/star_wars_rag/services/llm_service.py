@@ -117,18 +117,24 @@ class LocalLLMService(LLMService, LoggerMixin):
             self.characters = {}
     
     async def _load_model(self) -> None:
-        """Load the LLM model asynchronously.
-        
-        Note: This is an optimized implementation for fast deployment.
-        """
+        """Load the LLM model asynchronously."""
         if self.llm is not None:
             return
         
         try:
             self.logger.info("loading_llm_model", model_path=str(self.model_path))
             
-            # Load model (optimized for fast deployment)
-            self.llm = {"status": "phi2_loaded", "optimized": True}
+            # Import llama-cpp-python
+            from llama_cpp import Llama
+            
+            # Load the model
+            self.llm = Llama(
+                model_path=str(self.model_path),
+                n_ctx=self.n_ctx,
+                n_threads=self.n_threads,
+                n_gpu_layers=self.n_gpu_layers,
+                verbose=self.verbose
+            )
             
             self.logger.info("llm_model_loaded", model_path=str(self.model_path))
             
@@ -138,39 +144,31 @@ class LocalLLMService(LLMService, LoggerMixin):
                             error=str(e))
             raise ServiceError("LLM", "model_loading", f"Failed to load LLM model: {str(e)}")
     
-    def _get_mock_response(self, prompt: str, character: str) -> str:
-        """Generate a mock response based on character personality."""
+    def _generate_response(self, prompt: str, character: str) -> str:
+        """Generate a response using the actual LLM model."""
         character_info = self.characters.get(character, {})
         personality = character_info.get("personality", "Neutral")
         speaking_style = character_info.get("speaking_style", "Direct")
         
-        # Simple mock responses based on character
-        if "Luke" in character:
-            if "force" in prompt.lower():
-                return "The Force is strong with you. Trust your feelings, and let the Force guide you."
-            elif "father" in prompt.lower():
-                return "I can sense the conflict within you. There's still good in you, I know it."
-            else:
-                return "I believe in the Force and the power of hope. We can make a difference."
+        # Create a context-aware prompt
+        system_prompt = f"""You are {character}, a character from Star Wars. 
+        Personality: {personality}
+        Speaking style: {speaking_style}
         
-        elif "Vader" in character:
-            if "force" in prompt.lower():
-                return "The Force is power. Unlimited power. Join me, and together we can rule the galaxy."
-            elif "luke" in prompt.lower():
-                return "Luke, I am your father. Join me, and together we can bring order to the galaxy."
-            else:
-                return "You underestimate the power of the dark side. I find your lack of faith disturbing."
+        Respond to the user's message in character, staying true to your personality and speaking style.
+        Keep responses concise but engaging, as if you're having a real conversation."""
         
-        elif "Leia" in character:
-            if "hope" in prompt.lower():
-                return "Hope is not lost. We will fight for freedom and justice in the galaxy."
-            elif "rebellion" in prompt.lower():
-                return "The Rebellion is our only hope. We must stand together against tyranny."
-            else:
-                return "I am a princess and a leader. I will not be intimidated by threats or violence."
+        full_prompt = f"{system_prompt}\n\nUser: {prompt}\n{character}:"
         
-        else:
-            return f"I understand your question about '{prompt}'. As {character}, I would say that this is an interesting topic that requires careful consideration."
+        # Generate response using the model
+        response = self.llm(
+            full_prompt,
+            max_tokens=150,
+            temperature=0.7,
+            stop=["User:", "\n\n"]
+        )
+        
+        return response['choices'][0]['text'].strip()
     
     async def generate_response(
         self, 
@@ -210,8 +208,8 @@ class LocalLLMService(LLMService, LoggerMixin):
                            prompt_length=len(prompt),
                            character=character)
             
-            # Generate mock response
-            response_text = self._get_mock_response(prompt, character)
+            # Generate response using the model
+            response_text = self._generate_response(prompt, character)
             
             duration = time.time() - start_time
             
@@ -236,7 +234,7 @@ class LocalLLMService(LLMService, LoggerMixin):
                 "character": character,
                 "duration": duration,
                 "prompt_length": len(prompt),
-                "model": "phi-2-star-wars"
+                "model": "phi-2"
             }
             
         except Exception as e:
@@ -312,7 +310,7 @@ class LocalLLMService(LLMService, LoggerMixin):
                 "service": "LLM",
                 "model_loaded": self.llm is not None,
                 "available_characters": len(self.characters),
-                "model_type": "phi-2-star-wars"
+                "model_type": "phi-2"
             }
         except Exception as e:
             return {

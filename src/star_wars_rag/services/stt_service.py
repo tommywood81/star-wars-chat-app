@@ -61,18 +61,18 @@ class WhisperSTTService(STTService, LoggerMixin):
         pass
     
     async def _load_model(self) -> None:
-        """Load the Whisper model asynchronously.
-        
-        Note: This is an optimized implementation for fast deployment.
-        """
+        """Load the Whisper model asynchronously."""
         if self.model is not None:
             return
         
         try:
             self.logger.info("loading_whisper_model", model_name=self.model_name)
             
-            # Load model (optimized for fast deployment)
-            self.model = {"status": "whisper_loaded", "optimized": True}
+            # Import whisper
+            import whisper
+            
+            # Load the model
+            self.model = whisper.load_model(self.model_name)
             
             self.logger.info("whisper_model_loaded", model_name=self.model_name)
             
@@ -82,25 +82,16 @@ class WhisperSTTService(STTService, LoggerMixin):
                             error=str(e))
             raise ServiceError("STT", "model_loading", f"Failed to load Whisper model: {str(e)}")
     
-    def _get_mock_transcription(self, audio_path: Path) -> str:
-        """Generate a mock transcription based on file name."""
-        filename = audio_path.stem.lower()
+    def _transcribe_audio(self, audio_path: Path, language: str) -> str:
+        """Transcribe audio using the actual Whisper model."""
+        # Transcribe the audio file
+        result = self.model.transcribe(
+            str(audio_path),
+            language=language,
+            fp16=False  # Use CPU for compatibility
+        )
         
-        # Simple mock transcriptions based on common patterns
-        if "hello" in filename or "greeting" in filename:
-            return "Hello there! How are you today?"
-        elif "force" in filename:
-            return "The Force is strong with this one."
-        elif "luke" in filename:
-            return "I am Luke Skywalker, and I'm here to rescue you."
-        elif "vader" in filename:
-            return "I find your lack of faith disturbing."
-        elif "leia" in filename:
-            return "Help me, Obi-Wan Kenobi. You're my only hope."
-        elif "star" in filename or "wars" in filename:
-            return "A long time ago in a galaxy far, far away."
-        else:
-            return "This is a mock transcription of your audio file. The actual Whisper model is not loaded."
+        return result["text"].strip()
     
     async def transcribe(self, audio_path: Path, language: str = "en") -> Dict[str, Any]:
         """Transcribe audio file to text using Whisper.
@@ -133,8 +124,8 @@ class WhisperSTTService(STTService, LoggerMixin):
                            audio_path=str(audio_path), 
                            language=language)
             
-            # Generate mock transcription
-            transcribed_text = self._get_mock_transcription(audio_path)
+            # Transcribe audio using the model
+            transcribed_text = self._transcribe_audio(audio_path, language)
             
             duration = time.time() - start_time
             

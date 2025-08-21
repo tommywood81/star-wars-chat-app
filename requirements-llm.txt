@@ -1,9 +1,11 @@
-# Minimal LLM requirements - only essential packages
-fastapi==0.95.2
-uvicorn==0.22.0
-pydantic==1.10.7
+# LLM Service Requirements
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+structlog==23.2.0
 python-multipart==0.0.6
-requests==2.31.0
-
-# Note: llama-cpp-python will be installed separately if needed
-# For now, we'll use a mock LLM service for faster builds
+aiofiles==23.2.1
+llama-cpp-python==0.2.11
+pandas==2.1.4
+numpy==1.24.3

@@ -69,18 +69,18 @@ class CoquiTTSService(TTSService, LoggerMixin):
         pass
     
     async def _load_model(self) -> None:
-        """Load the TTS model asynchronously.
-        
-        Note: This is an optimized implementation for fast deployment.
-        """
+        """Load the TTS model asynchronously."""
         if self.tts is not None:
             return
         
         try:
             self.logger.info("loading_tts_model", voice=self.default_voice)
             
-            # Load model (optimized for fast deployment)
-            self.tts = {"status": "coqui_loaded", "optimized": True}
+            # Import TTS
+            from TTS.api import TTS
+            
+            # Load the model
+            self.tts = TTS(self.available_voices[self.default_voice])
             
             self.logger.info("tts_model_loaded", voice=self.default_voice)
             
@@ -90,26 +90,20 @@ class CoquiTTSService(TTSService, LoggerMixin):
                             error=str(e))
             raise ServiceError("TTS", "model_loading", f"Failed to load TTS model: {str(e)}")
     
-    def _create_mock_audio(self, text: str, voice: str) -> bytes:
-        """Create a mock audio file (just returns a small dummy audio file)."""
-        # This would normally generate actual audio
-        # For now, return a minimal WAV file header (44 bytes)
-        mock_wav_header = (
-            b'RIFF' +           # Chunk ID
-            b'\x24\x00\x00\x00' +  # Chunk size (36 bytes)
-            b'WAVE' +           # Format
-            b'fmt ' +           # Subchunk1 ID
-            b'\x10\x00\x00\x00' +  # Subchunk1 size (16 bytes)
-            b'\x01\x00' +       # Audio format (PCM)
-            b'\x01\x00' +       # Number of channels (1)
-            b'\x44\xAC\x00\x00' +  # Sample rate (44100)
-            b'\x88\x58\x01\x00' +  # Byte rate
-            b'\x02\x00' +       # Block align
-            b'\x10\x00' +       # Bits per sample (16)
-            b'data' +           # Subchunk2 ID
-            b'\x00\x00\x00\x00'    # Subchunk2 size (0 bytes)
-        )
-        return mock_wav_header
+    def _synthesize_audio(self, text: str, voice: str, output_path: Path) -> bool:
+        """Synthesize audio using the actual TTS model."""
+        try:
+            # Generate audio using the TTS model
+            self.tts.tts_to_file(
+                text=text,
+                file_path=str(output_path),
+                speaker_wav=None,  # Use default voice
+                language="en"
+            )
+            return True
+        except Exception as e:
+            self.logger.error("tts_synthesis_failed", error=str(e), text=text[:50])
+            return False
     
     async def synthesize(self, text: str, voice: str = "ljspeech", output_path: Optional[Path] = None) -> Dict[str, Any]:
         """Synthesize text to speech using TTS.
@@ -144,15 +138,15 @@ class CoquiTTSService(TTSService, LoggerMixin):
                            text_length=len(text),
                            voice=voice)
             
-            # Create mock audio
-            mock_audio_data = self._create_mock_audio(text, voice)
-            
-            # Save to file if output_path provided
+            # Generate output path if not provided
             if output_path is None:
-                output_path = self.temp_dir / f"mock_synthesis_{int(time.time())}.wav"
+                output_path = self.temp_dir / f"synthesis_{int(time.time())}.wav"
             
-            with open(output_path, 'wb') as f:
-                f.write(mock_audio_data)
+            # Synthesize audio using the model
+            success = self._synthesize_audio(text, voice, output_path)
+            
+            if not success:
+                raise AudioProcessingError("TTS", "synthesis", "Failed to synthesize audio")
             
             duration = time.time() - start_time
             
