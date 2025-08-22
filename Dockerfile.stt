@@ -1,5 +1,10 @@
-# STT Service Dockerfile - CPU Only
+# STT Service Dockerfile - Optimized (CPU Only)
 FROM python:3.10-slim
+
+# Set CPU-only environment variables
+ENV CUDA_VISIBLE_DEVICES=""
+ENV PYTORCH_CUDA_ALLOC_CONF=""
+ENV TORCH_CUDA_ARCH_LIST=""
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -7,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
     cmake \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -15,13 +21,11 @@ WORKDIR /app
 # Copy requirements first for better caching
 COPY requirements-stt.txt .
 
-# Install Python dependencies (CPU only, no PyTorch)
+# Install Python dependencies (CPU only)
 RUN pip install --no-cache-dir -r requirements-stt.txt
 
-# Copy application code
-COPY src/ /app/src/
-COPY models/ /app/models/
-COPY data/ /app/data/
+# Copy the standalone STT service
+COPY stt_service_standalone.py /app/stt_service.py
 
 # Create necessary directories
 RUN mkdir -p /app/temp /app/logs
@@ -39,4 +43,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:5001/health || exit 1
 
 # Run the application
-CMD ["uvicorn", "src.star_wars_rag.stt_service:app", "--host", "0.0.0.0", "--port", "5001"]
+CMD ["uvicorn", "stt_service:app", "--host", "0.0.0.0", "--port", "5001"]

@@ -1,3 +1,35 @@
+Write production-quality Python code for this project with the following requirements:
+Architecture & Extensibility:
+- Use clean software design patterns (e.g., factory, strategy, dependency injection) to make the
+code modular and extensible, so adding new movie scripts, chat personas, or voice models can be
+done with minimal changes.
+- Separate concerns clearly between STT, TTS, LLM, and frontend orchestration.
+Code Quality & Clarity:
+- Apply clean code principles: small, single-purpose functions, meaningful names, minimal
+duplication, and consistent style.
+- Include Python type hints for all functions, classes, and method parameters.
+- Add inline comments and docstrings explaining the purpose of modules, functions, and classes.
+- Ensure code is clear and explainable, avoiding clever hacks.
+Testing & Reliability:
+- Use test-driven development principles: include unit tests for all major components with example
+inputs and expected outputs.
+- Validate inputs and outputs, and include error handling for file operations, API calls, and model
+responses.
+Logging & Monitoring:
+- Include a logging mechanism for debugging and monitoring instead of using print statements.
+Configuration & Dependencies:
+- Use configuration files or environment variables for parameters like model paths, ports, and voices.
+- Include requirements.txt or pyproject.toml with pinned dependency versions for reproducible builds.
+Polish & Maintainability:
+- Follow code formatting and linting best practices (e.g., Black, isort, flake8).
+- Provide examples of usage and a README with setup instructions, architecture explanation, and
+guidance on extending the system.
+Output should be solid, professional, testable, maintainable, and portfolio-ready, suitable for
+production use and easily understandable by other developers.
+
+
+
+
 Here’s a full deployment plan for your Star Wars chat app, with speech-to-text (STT), text-to-speech (TTS), and the Phi-2 LLM all running in separate containers. This way you keep things modular, easier to debug, and more secure.
 
 🚀 Deployment Plan – Star Wars Chat App (STT + TTS + Phi-2)

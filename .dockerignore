@@ -1,66 +1,30 @@
-# Git and version control
-.git
-.gitignore
+# Exclude everything by default
+*
 
-# Python cache and virtual environments
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-.pytest_cache/
-.mypy_cache/
+# Include essential files for all builds
+!requirements-*.txt
+!Dockerfile*
+!tts_service_standalone.py
+!stt_service_standalone.py
+!llm_service_standalone.py
+!characters.json
+!src/
 
-# Jupyter notebooks and checkpoints
-*.ipynb
-.ipynb_checkpoints/
-notebooks/
+# Include frontend files
+!frontend/
+!frontend/**
 
-# IDE and editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS specific files
-.DS_Store
-Thumbs.db
-
-# Documentation and README files
-*.md
-docs/
-
-# Test files and coverage
+# Exclude heavy files and directories
+models/
+data/
+src/
 tests/
-.coverage
-htmlcov/
-.pytest_cache/
-
-# Build artifacts
-dist/
-build/
-*.egg-info/
-
-# Docker files (except main Dockerfile)
-docker-compose.override.yml
-.dockerignore
-
-# Temporary and log files
+notebooks/
+env/
 *.log
-*.tmp
-tmp/
-
-# Large model files (will be downloaded at runtime)
-models/*.gguf
-models/*.bin
-models/*.safetensors
-
-# Database files
-*.sqlite3
-*.db
+*.pyc
+__pycache__/
+.git/
+.gitignore
+README.md
+*.md

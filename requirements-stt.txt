@@ -1,4 +1,4 @@
-# STT Service Requirements
+# STT Service Requirements - CPU Only
 fastapi==0.104.1
 uvicorn==0.24.0
 pydantic==2.5.0
@@ -6,6 +6,7 @@ pydantic-settings==2.1.0
 structlog==23.2.0
 python-multipart==0.0.6
 aiofiles==23.2.1
+numpy==1.24.3
+--find-links https://download.pytorch.org/whl/torch_stable.html
+torch==2.1.1+cpu
 openai-whisper==20231117
-torch==2.1.1
-torchaudio==2.1.1

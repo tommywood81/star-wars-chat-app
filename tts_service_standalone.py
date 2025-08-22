@@ -1,8 +1,8 @@
 """
-Text-to-Speech (TTS) Service for Star Wars Chat App.
+Standalone Text-to-Speech (TTS) Service for Star Wars Chat App.
 
-This module provides FastAPI endpoints for converting text to speech
-using Google Text-to-Speech (gTTS). CPU-only deployment for droplet compatibility.
+This is a completely isolated TTS service that doesn't import any other services
+to avoid loading heavy models like Whisper or Phi-2.
 """
 
 import os
@@ -13,6 +13,7 @@ from typing import Optional, Dict, Any, List
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # Configure logging
@@ -23,6 +24,15 @@ app = FastAPI(
     title="Star Wars Chat - TTS Service",
     description="Text-to-Speech service using Google TTS (CPU-only)",
     version="1.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify exact origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 class TTSRequest(BaseModel):

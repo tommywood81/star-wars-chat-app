@@ -1,8 +1,8 @@
 """
-Large Language Model service implementation using local models.
+Large Language Model service implementation using Transformers.
 
 This module provides a concrete implementation of the LLMService interface
-using local LLM models for text generation.
+using Hugging Face Transformers for text generation.
 """
 
 import asyncio
@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 import json
+import torch
 
 from ..core.interfaces import LLMService
 from ..core.exceptions import ServiceError, ModelError, ValidationError, CharacterNotFoundError
@@ -17,17 +18,16 @@ from ..core.logging import LoggerMixin
 
 
 class LocalLLMService(LLMService, LoggerMixin):
-    """Large Language Model service using local models."""
+    """Large Language Model service using Transformers."""
     
     def __init__(self, config: Dict[str, Any]) -> None:
         """Initialize the Local LLM service.
         
         Args:
             config: Configuration dictionary containing:
-                - model_path: Path to the LLM model file
-                - n_ctx: Context window size
-                - n_threads: Number of threads to use
-                - n_gpu_layers: Number of GPU layers
+                - model_name: Hugging Face model name
+                - max_length: Maximum generation length
+                - temperature: Sampling temperature
                 - verbose: Enable verbose logging
                 
         Raises:
@@ -39,11 +39,11 @@ class LocalLLMService(LLMService, LoggerMixin):
         self._validate_config()
         
         # Initialize model
-        self.llm = None
-        self.model_path = Path(self.config.get("model_path", "models/phi-2.Q4_K_M.gguf"))
-        self.n_ctx = self.config.get("n_ctx", 2048)
-        self.n_threads = self.config.get("n_threads")
-        self.n_gpu_layers = self.config.get("n_gpu_layers", 0)
+        self.model = None
+        self.tokenizer = None
+        self.model_name = self.config.get("model_name", "microsoft/DialoGPT-medium")
+        self.max_length = self.config.get("max_length", 150)
+        self.temperature = self.config.get("temperature", 0.7)
         self.verbose = self.config.get("verbose", False)
         
         # Character management
@@ -73,8 +73,8 @@ class LocalLLMService(LLMService, LoggerMixin):
             self.logger.info("default_characters_created", count=len(self.characters))
         
         self.logger.info("initializing_llm_service", 
-                        model_path=str(self.model_path),
-                        n_ctx=self.n_ctx)
+                        model_name=self.model_name,
+                        max_length=self.max_length)
     
     def _validate_config(self) -> None:
         """Validate service configuration.
@@ -118,29 +118,32 @@ class LocalLLMService(LLMService, LoggerMixin):
     
     async def _load_model(self) -> None:
         """Load the LLM model asynchronously."""
-        if self.llm is not None:
+        if self.model is not None and self.tokenizer is not None:
             return
         
         try:
-            self.logger.info("loading_llm_model", model_path=str(self.model_path))
+            self.logger.info("loading_llm_model", model_name=self.model_name)
             
-            # Import llama-cpp-python
-            from llama_cpp import Llama
+            # Import transformers
+            from transformers import AutoModelForCausalLM, AutoTokenizer
             
-            # Load the model
-            self.llm = Llama(
-                model_path=str(self.model_path),
-                n_ctx=self.n_ctx,
-                n_threads=self.n_threads,
-                n_gpu_layers=self.n_gpu_layers,
-                verbose=self.verbose
+            # Load the model and tokenizer
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.model_name,
+                torch_dtype="auto",
+                device_map="auto"
             )
             
-            self.logger.info("llm_model_loaded", model_path=str(self.model_path))
+            # Set pad token if not present
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+            
+            self.logger.info("llm_model_loaded", model_name=self.model_name)
             
         except Exception as e:
             self.logger.error("failed_to_load_llm_model", 
-                            model_path=str(self.model_path), 
+                            model_name=self.model_name, 
                             error=str(e))
             raise ServiceError("LLM", "model_loading", f"Failed to load LLM model: {str(e)}")
     
@@ -160,15 +163,24 @@ class LocalLLMService(LLMService, LoggerMixin):
         
         full_prompt = f"{system_prompt}\n\nUser: {prompt}\n{character}:"
         
-        # Generate response using the model
-        response = self.llm(
-            full_prompt,
-            max_tokens=150,
-            temperature=0.7,
-            stop=["User:", "\n\n"]
-        )
+        # Tokenize input
+        inputs = self.tokenizer(full_prompt, return_tensors="pt", truncation=True, max_length=512)
         
-        return response['choices'][0]['text'].strip()
+        # Generate response using the model
+        with torch.no_grad():
+            outputs = self.model.generate(
+                inputs.input_ids,
+                max_length=inputs.input_ids.shape[1] + self.max_length,
+                temperature=self.temperature,
+                do_sample=True,
+                pad_token_id=self.tokenizer.eos_token_id,
+                eos_token_id=self.tokenizer.eos_token_id
+            )
+        
+        # Decode the response
+        response = self.tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+        
+        return response.strip()
     
     async def generate_response(
         self, 
@@ -198,80 +210,49 @@ class LocalLLMService(LLMService, LoggerMixin):
         start_time = time.time()
         
         try:
-            # Validate input
-            self._validate_generation_input(prompt, character)
+            # Validate inputs
+            if not prompt or not prompt.strip():
+                raise ValidationError("Prompt cannot be empty")
+            
+            if character not in self.characters:
+                raise CharacterNotFoundError(f"Character '{character}' not found")
             
             # Load model if not loaded
             await self._load_model()
             
-            self.logger.info("generating_response", 
-                           prompt_length=len(prompt),
-                           character=character)
-            
-            # Generate response using the model
-            response_text = self._generate_response(prompt, character)
+            # Generate response
+            response = self._generate_response(prompt, character)
             
             duration = time.time() - start_time
             
             # Log performance metric
             from ..core.logging import log_performance_metric
-            log_performance_metric(
-                self.logger,
-                "response_generation_duration",
-                duration,
-                "seconds",
-                service="LLM",
-                details={"prompt_length": len(prompt), "character": character}
-            )
-            
-            self.logger.info("response_generated", 
-                           character=character,
-                           duration=duration,
-                           response_length=len(response_text))
+            log_performance_metric(self.logger, "llm_generation", duration, {
+                "character": character,
+                "prompt_length": len(prompt),
+                "response_length": len(response)
+            })
             
             return {
-                "response": response_text,
+                "response": response,
                 "character": character,
                 "duration": duration,
                 "prompt_length": len(prompt),
-                "model": "phi-2"
+                "model": "transformers-star-wars",
+                "model_type": "transformers"
             }
             
+        except (ValidationError, CharacterNotFoundError):
+            raise
         except Exception as e:
-            duration = time.time() - start_time
             from ..core.logging import log_error_with_context
-            log_error_with_context(
-                self.logger,
-                e,
-                context={
-                    "prompt": prompt,
-                    "character": character,
-                    "duration": duration
-                }
-            )
+            log_error_with_context(self.logger, "llm_generation_failed", str(e), {
+                "character": character,
+                "prompt_length": len(prompt)
+            })
             raise ModelError("LLM", "generation", f"Failed to generate response: {str(e)}")
     
-    def _validate_generation_input(self, prompt: str, character: str) -> None:
-        """Validate input for response generation.
-        
-        Args:
-            prompt: Input prompt
-            character: Character name
-            
-        Raises:
-            ValidationError: If input is invalid
-            CharacterNotFoundError: If character is not found
-        """
-        if not prompt or not prompt.strip():
-            raise ValidationError("prompt", prompt, "Prompt cannot be empty")
-        
-        if not character or not character.strip():
-            raise ValidationError("character", character, "Character cannot be empty")
-        
-        if character not in self.characters:
-            raise CharacterNotFoundError(character, f"Character '{character}' not found")
-    
-    async def get_available_characters(self) -> List[str]:
+    async def get_characters(self) -> List[str]:
         """Get list of available characters.
         
         Returns:
@@ -292,30 +273,32 @@ class LocalLLMService(LLMService, LoggerMixin):
             CharacterNotFoundError: If character is not found
         """
         if character not in self.characters:
-            raise CharacterNotFoundError(character, f"Character '{character}' not found")
+            raise CharacterNotFoundError(f"Character '{character}' not found")
         
         return self.characters[character]
     
     async def health_check(self) -> Dict[str, Any]:
-        """Perform health check on the LLM service.
+        """Perform health check.
         
         Returns:
             Health status dictionary
         """
         try:
-            await self._load_model()
+            # Try to load model if not loaded
+            if self.model is None:
+                await self._load_model()
             
             return {
                 "status": "healthy",
-                "service": "LLM",
-                "model_loaded": self.llm is not None,
-                "available_characters": len(self.characters),
-                "model_type": "phi-2"
+                "model_loaded": self.model is not None,
+                "characters_available": len(self.characters),
+                "model": "transformers-star-wars",
+                "model_type": "transformers"
             }
         except Exception as e:
             return {
                 "status": "unhealthy",
-                "service": "LLM",
                 "error": str(e),
-                "model_loaded": False
+                "model_loaded": self.model is not None,
+                "characters_available": len(self.characters)
             }
