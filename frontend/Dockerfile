@@ -1,0 +1,36 @@
+# Frontend Service Dockerfile - Optimized Multi-stage Build
+FROM node:20-alpine AS build
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files first for better caching
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install --omit=dev
+
+# Copy source code
+COPY src/ ./src/
+COPY public/ ./public/
+
+# Build the application
+RUN npm run build
+
+# Production stage - Lightweight static server
+FROM node:20-alpine
+
+# Install lightweight static file server
+RUN npm install -g serve@14.2.3
+
+# Set working directory
+WORKDIR /app
+
+# Copy built assets from build stage
+COPY --from=build /app/build ./build
+
+# Expose port
+EXPOSE 3000
+
+# Start static server
+CMD ["serve", "-s", "build", "-l", "3000"]

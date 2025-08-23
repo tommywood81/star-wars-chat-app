@@ -13,7 +13,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from typing import Dict, Any
 
-from src.star_wars_rag.services.stt_service import WhisperSTTService, create_stt_service
+from src.star_wars_rag.services.stt_service import WhisperSTTService
 from src.star_wars_rag.core.exceptions import (
     ServiceError, 
     AudioProcessingError, 

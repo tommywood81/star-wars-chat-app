@@ -1,11 +1,9 @@
-version: "3.9"
-
 services:
   # Speech-to-Text Service
   stt:
     build:
-      context: .
-      dockerfile: Dockerfile.stt
+      context: ./stt-service
+      dockerfile: Dockerfile
     container_name: star_wars_stt_service
     ports:
       - "5001:5001"
@@ -23,8 +21,8 @@ services:
   # Text-to-Speech Service (Optimized)
   tts:
     build:
-      context: .
-      dockerfile: Dockerfile.tts
+      context: ./tts-service
+      dockerfile: Dockerfile
     container_name: star_wars_tts_service
     ports:
       - "5002:5002"
@@ -42,30 +40,27 @@ services:
   # LLM Service
   llm:
     build:
-      context: .
-      dockerfile: Dockerfile.llm
+      context: ./llm-service
+      dockerfile: Dockerfile
     container_name: star_wars_llm_service
     ports:
       - "5003:5003"
-    volumes:
-      - ./models:/app/models
     environment:
       - PYTHONPATH=/app
-      - MODEL_PATH=/app/models/phi-2.Q4_K_M.gguf
-      - HF_HOME=/app/models/hf
+      - TEMP_DIR=/app/temp
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 30s
 
   # Frontend Service (Optimized)
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: star_wars_frontend
     ports:
       - "3000:3000"

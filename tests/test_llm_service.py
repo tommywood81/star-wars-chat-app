@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch, MagicMock
 from fastapi.testclient import TestClient
 
 from src.star_wars_rag.llm_service import (
-    app, LLMService, ChatRequest, ChatResponse, CharacterInfo
+    app, HybridLLMService, ChatRequest, ChatResponse, CharacterInfo
 )
 
 
@@ -26,7 +26,7 @@ class TestLLMService:
         mock_prompt_builder_instance = Mock()
         mock_prompt_builder.return_value = mock_prompt_builder_instance
         
-        service = LLMService(model_path="test_model.gguf")
+        service = HybridLLMService()
         
         assert service.model_path.name == "test_model.gguf"
         assert service.llm == mock_llm
@@ -40,7 +40,7 @@ class TestLLMService:
         mock_llm_class.side_effect = Exception("Model loading failed")
         
         with pytest.raises(RuntimeError, match="Could not load LLM model"):
-            LLMService(model_path="test_model.gguf")
+            HybridLLMService()
     
     @patch('src.star_wars_rag.llm_service.LocalLLM')
     @patch('src.star_wars_rag.llm_service.CharacterPromptBuilder')
@@ -69,7 +69,7 @@ class TestLLMService:
             }
         }
         
-        service = LLMService(model_path="test_model.gguf")
+        service = HybridLLMService()
         
         result = service.chat_with_character(
             message="Hello Luke!",

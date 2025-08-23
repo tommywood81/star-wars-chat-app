@@ -1,0 +1,193 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "star-wars-rag"
+version = "1.0.0"
+description = "Star Wars RAG Chat Application with STT, TTS, and LLM capabilities"
+authors = [
+    {name = "Star Wars RAG Team", email = "team@starwarsrag.com"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "fastapi==0.104.1",
+    "uvicorn[standard]==0.24.0",
+    "pydantic==2.5.0",
+    "pydantic-settings==2.1.0",
+    "python-multipart==0.0.6",
+    "openai-whisper==20231117",
+    "gTTS==2.4.0",
+    "transformers==4.30.2",
+    "accelerate==0.20.3",
+    "sentencepiece==0.1.99",
+    "safetensors==0.3.1",
+    "llama-cpp-python==0.2.11",
+    "pandas==2.0.3",
+    "numpy==1.24.3",
+    "sentence-transformers==2.2.2",
+    "requests==2.32.4",
+    "aiohttp==3.8.5",
+    "python-dotenv==1.0.0",
+    "structlog==23.2.0",
+    "aiofiles==23.2.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==7.4.0",
+    "pytest-asyncio==0.21.1",
+    "pytest-cov==4.1.0",
+    "httpx==0.24.1",
+    "black==23.7.0",
+    "isort==5.12.0",
+    "flake8==6.0.0",
+    "mypy==1.5.1",
+    "pre-commit==3.4.0",
+]
+
+test = [
+    "pytest==7.4.0",
+    "pytest-asyncio==0.21.1",
+    "pytest-cov==4.1.0",
+    "httpx==0.24.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/star-wars-rag"
+Repository = "https://github.com/your-org/star-wars-rag"
+Documentation = "https://star-wars-rag.readthedocs.io"
+"Bug Tracker" = "https://github.com/your-org/star-wars-rag/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.yaml", "*.yml"]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["star_wars_rag"]
+known_third_party = ["fastapi", "pydantic", "uvicorn", "transformers", "torch", "numpy", "pandas"]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".venv",
+    "env",
+    "*.egg-info",
+]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "transformers.*",
+    "torch.*",
+    "numpy.*",
+    "pandas.*",
+    "whisper.*",
+    "TTS.*",
+    "llama_cpp.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "-q",
+    "--strict-markers",
+    "--cov=src/star_wars_rag",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "real_data: marks tests that use real Star Wars data",
+    "web: marks web interface tests (deselect with '-m \"not web\"')",
+    "database: marks database tests (deselect with '-m \"not database\"')",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

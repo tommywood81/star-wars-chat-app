@@ -7,7 +7,7 @@ for validation and environment variable support.
 
 from typing import Optional, Dict, Any, List
 from pathlib import Path
-from pydantic import Field, validator
+from pydantic import Field, field_validator, ConfigDict
 from pydantic_settings import BaseSettings
 import os
 
@@ -19,8 +19,7 @@ class STTConfig(BaseSettings):
     language: str = Field(default="en", description="Default language for transcription")
     temp_dir: Path = Field(default=Path("/tmp"), description="Temporary directory for audio files")
     
-    class Config:
-        env_prefix = "STT_"
+    model_config = ConfigDict(env_prefix="STT_", protected_namespaces=())
 
 
 class TTSConfig(BaseSettings):
@@ -30,8 +29,7 @@ class TTSConfig(BaseSettings):
     cache_dir: Path = Field(default=Path("/app/models/tts"), description="TTS model cache directory")
     temp_dir: Path = Field(default=Path("/tmp"), description="Temporary directory for audio files")
     
-    class Config:
-        env_prefix = "TTS_"
+    model_config = ConfigDict(env_prefix="TTS_", protected_namespaces=())
 
 
 class LLMConfig(BaseSettings):
@@ -43,14 +41,14 @@ class LLMConfig(BaseSettings):
     n_gpu_layers: int = Field(default=0, description="Number of GPU layers")
     verbose: bool = Field(default=False, description="Enable verbose logging")
     
-    @validator('model_path')
+    @field_validator('model_path')
+    @classmethod
     def validate_model_path(cls, v):
         if not v.exists():
             raise ValueError(f"Model path does not exist: {v}")
         return v
     
-    class Config:
-        env_prefix = "LLM_"
+    model_config = ConfigDict(env_prefix="LLM_", protected_namespaces=())
 
 
 class CharacterConfig(BaseSettings):
@@ -59,8 +57,7 @@ class CharacterConfig(BaseSettings):
     characters_file: Path = Field(default=Path("characters.json"), description="Path to characters configuration")
     default_character: str = Field(default="Luke Skywalker", description="Default character")
     
-    class Config:
-        env_prefix = "CHARACTER_"
+    model_config = ConfigDict(env_prefix="CHARACTER_", protected_namespaces=())
 
 
 class LoggingConfig(BaseSettings):
@@ -73,15 +70,15 @@ class LoggingConfig(BaseSettings):
     )
     file_path: Optional[Path] = Field(default=None, description="Log file path")
     
-    @validator('level')
+    @field_validator('level')
+    @classmethod
     def validate_log_level(cls, v):
         valid_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
         if v.upper() not in valid_levels:
             raise ValueError(f"Invalid log level. Must be one of: {valid_levels}")
         return v.upper()
     
-    class Config:
-        env_prefix = "LOG_"
+    model_config = ConfigDict(env_prefix="LOG_", protected_namespaces=())
 
 
 class AppConfig(BaseSettings):
@@ -105,14 +102,13 @@ class AppConfig(BaseSettings):
     models_dir: Path = Field(default=Path("models"), description="Models directory")
     static_dir: Path = Field(default=Path("static"), description="Static files directory")
     
-    @validator('data_dir', 'models_dir', 'static_dir')
+    @field_validator('data_dir', 'models_dir', 'static_dir')
+    @classmethod
     def create_directories(cls, v):
         v.mkdir(parents=True, exist_ok=True)
         return v
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = ConfigDict(env_file=".env", env_file_encoding="utf-8")
     
     def get_service_config(self, service_name: str) -> Dict[str, Any]:
         """Get configuration for a specific service.

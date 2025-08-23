@@ -87,7 +87,8 @@ function App() {
       });
       
       // Play the audio response
-      const audioUrl = `${process.env.REACT_APP_TTS_URL || 'http://localhost:5002'}/audio/${ttsResponse.data.audio_file}`;
+      const audioFilename = ttsResponse.data.audio_file.split('/').pop(); // Extract just the filename
+      const audioUrl = `${process.env.REACT_APP_TTS_URL || 'http://localhost:5002'}/audio/${audioFilename}`;
       const audio = new Audio(audioUrl);
       audio.play();
       
@@ -133,7 +134,8 @@ function App() {
       });
       
       // Play the audio response
-      const audioUrl = `${process.env.REACT_APP_TTS_URL || 'http://localhost:5002'}/audio/${ttsResponse.data.audio_file}`;
+      const audioFilename = ttsResponse.data.audio_file.split('/').pop(); // Extract just the filename
+      const audioUrl = `${process.env.REACT_APP_TTS_URL || 'http://localhost:5002'}/audio/${audioFilename}`;
       const audio = new Audio(audioUrl);
       audio.play();
       
