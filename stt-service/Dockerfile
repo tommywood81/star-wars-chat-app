@@ -1,18 +1,16 @@
-# STT Service Dockerfile - Optimized (CPU Only)
+# STT Service Dockerfile - Ultra Lightweight CPU Only
 FROM python:3.10-slim
 
 # Set CPU-only environment variables
 ENV CUDA_VISIBLE_DEVICES=""
 ENV PYTORCH_CUDA_ALLOC_CONF=""
 ENV TORCH_CUDA_ARCH_LIST=""
+ENV WHISPER_MODEL=base
 
-# Install system dependencies
+# Install minimal system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
-    build-essential \
-    cmake \
-    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -21,18 +19,19 @@ WORKDIR /app
 # Copy requirements first for better caching
 COPY requirements-stt.txt .
 
-# Install Python dependencies (CPU only)
-RUN pip install --no-cache-dir -r requirements-stt.txt
+# Install Python dependencies (CPU only, no cache)
+RUN pip install --no-cache-dir fastapi==0.104.1 uvicorn==0.24.0 pydantic==2.5.0 structlog==23.2.0 python-multipart==0.0.6 && \
+    pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.1.0+cpu torchaudio==2.1.0+cpu && \
+    pip install --no-cache-dir openai-whisper==20231117
 
 # Copy the standalone STT service
 COPY stt_service_standalone.py /app/stt_service.py
 
 # Create necessary directories
-RUN mkdir -p /app/temp /app/logs
+RUN mkdir -p /app/temp
 
 # Set environment variables
 ENV PYTHONPATH=/app
-ENV WHISPER_MODEL=base
 ENV TEMP_DIR=/app/temp
 
 # Expose port

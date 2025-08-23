@@ -51,13 +51,14 @@ class TranscriptionResponse(BaseModel):
 class STTService:
     """Speech-to-Text service using Whisper."""
     
-    def __init__(self, model_name: str = "base"):
+    def __init__(self, model_name: str = None):
         """Initialize the STT service with Whisper model.
         
         Args:
             model_name: Whisper model size ('tiny', 'base', 'small', 'medium', 'large')
         """
-        self.model_name = model_name
+        # Use environment variable if not specified, default to 'base'
+        self.model_name = model_name or os.getenv("WHISPER_MODEL", "base")
         self.model = None
         self._load_model()
     

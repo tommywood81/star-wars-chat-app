@@ -1,10 +1,11 @@
-# STT Service Requirements - Full Whisper Implementation
+# STT Service Requirements - Minimal CPU Only
 fastapi==0.104.1
 uvicorn==0.24.0
 pydantic==2.5.0
-pydantic-settings==2.1.0
 structlog==23.2.0
 python-multipart==0.0.6
-aiofiles==23.2.1
-# Whisper for speech-to-text
+# CPU-only PyTorch (lightweight)
+torch==2.1.0+cpu
+torchaudio==2.1.0+cpu
+# Whisper (will download base model only)
 openai-whisper==20231117
