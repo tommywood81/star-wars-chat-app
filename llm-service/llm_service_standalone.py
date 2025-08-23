@@ -1,183 +1,135 @@
 """
-Standalone LLM Service for Star Wars Chat App.
-
-This is a simplified LLM service that provides character responses
-without requiring the heavy Phi-2 model for basic functionality.
+Standalone LLM Service - Minimal Version
+Provides a lightweight LLM service without heavy model dependencies.
+For production, this can be replaced with actual Phi-2 or other LLM implementation.
 """
 
 import os
-import logging
 import json
-from typing import Dict, Any, Optional
+import asyncio
+from typing import Optional, Dict, Any, List
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import structlog
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
-app = FastAPI(
-    title="Star Wars Chat - LLM Service",
-    description="LLM service for Star Wars character responses",
-    version="1.0.0"
-)
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI(title="LLM Service", version="1.0.0")
 
 class ChatRequest(BaseModel):
     """Request model for chat."""
     message: str
-    character: str = "Luke Skywalker"
+    character: Optional[str] = "Luke Skywalker"
+    context: Optional[str] = None
 
 class ChatResponse(BaseModel):
     """Response model for chat."""
     response: str
     character: str
-    model: str = "character_responses"
+    confidence: float
+    tokens_used: Optional[int] = None
 
-class CharacterResponses:
-    """Simple character response system."""
-    
-    def __init__(self):
-        self.characters = {
-            "Luke Skywalker": {
-                "personality": "Optimistic, brave, and determined Jedi Knight",
-                "responses": [
-                    "The Force is strong with you, young one. Trust in it.",
-                    "I believe there's good in everyone, even in the darkest places.",
-                    "May the Force be with you, always.",
-                    "I'm a Jedi, like my father before me.",
-                    "The Force will guide us through this challenge."
-                ]
-            },
-            "Darth Vader": {
-                "personality": "Dark, intimidating, and powerful Sith Lord",
-                "responses": [
-                    "I find your lack of faith disturbing.",
-                    "The Force is strong with this one.",
-                    "You underestimate the power of the dark side.",
-                    "I am your father.",
-                    "The Emperor will not be pleased with this."
-                ]
-            },
-            "Yoda": {
-                "personality": "Wise, ancient Jedi Master with unique speech pattern",
-                "responses": [
-                    "Do or do not, there is no try.",
-                    "Fear is the path to the dark side.",
-                    "Size matters not. Look at me.",
-                    "A Jedi uses the Force for knowledge and defense, never for attack.",
-                    "Patience you must have, my young padawan."
-                ]
-            },
-            "Han Solo": {
-                "personality": "Confident, sarcastic smuggler and captain",
-                "responses": [
-                    "I've got a bad feeling about this.",
-                    "Great, kid! Don't get cocky.",
-                    "I know.",
-                    "Hokey religions and ancient weapons are no match for a good blaster at your side.",
-                    "Let's blow this thing and go home!"
-                ]
-            },
-            "Princess Leia": {
-                "personality": "Strong-willed, diplomatic leader and princess",
-                "responses": [
-                    "Help me, Obi-Wan Kenobi. You're my only hope.",
-                    "I love you.",
-                    "I know.",
-                    "Aren't you a little short for a stormtrooper?",
-                    "The more you tighten your grip, the more star systems will slip through your fingers."
-                ]
-            },
-            "Obi-Wan Kenobi": {
-                "personality": "Wise, experienced Jedi Master and mentor",
-                "responses": [
-                    "The Force will be with you, always.",
-                    "These aren't the droids you're looking for.",
-                    "Hello there!",
-                    "You were the chosen one!",
-                    "Use the Force, Luke."
-                ]
-            }
-        }
-    
-    def get_response(self, message: str, character: str) -> str:
-        """Get a character-appropriate response."""
-        import random
-        
-        if character not in self.characters:
-            character = "Luke Skywalker"  # Default fallback
-        
-        char_data = self.characters[character]
-        responses = char_data["responses"]
-        
-        # Simple response selection based on message content
-        message_lower = message.lower()
-        
-        if any(word in message_lower for word in ["force", "jedi", "light"]):
-            return random.choice([r for r in responses if "Force" in r or "Jedi" in r])
-        elif any(word in message_lower for word in ["dark", "sith", "evil"]):
-            return random.choice([r for r in responses if "dark" in r.lower() or "Sith" in r])
-        elif any(word in message_lower for word in ["love", "feelings"]):
-            return random.choice([r for r in responses if "love" in r.lower()])
-        else:
-            return random.choice(responses)
+class CharacterInfo(BaseModel):
+    """Character information model."""
+    name: str
+    description: str
+    personality: str
+    voice_id: Optional[str] = None
 
-# Initialize character responses
-character_responses = CharacterResponses()
+# Sample character data
+CHARACTERS = {
+    "Luke Skywalker": {
+        "name": "Luke Skywalker",
+        "description": "A Jedi Knight and hero of the Rebellion",
+        "personality": "Optimistic, brave, and determined to do what's right",
+        "voice_id": "luke_voice"
+    },
+    "Darth Vader": {
+        "name": "Darth Vader",
+        "description": "A powerful Sith Lord and former Jedi",
+        "personality": "Intimidating, commanding, and conflicted",
+        "voice_id": "vader_voice"
+    },
+    "Han Solo": {
+        "name": "Han Solo",
+        "description": "A skilled smuggler and captain of the Millennium Falcon",
+        "personality": "Confident, sarcastic, and loyal to friends",
+        "voice_id": "han_voice"
+    }
+}
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {
-        "status": "healthy", 
-        "service": "llm", 
-        "model": "character_responses",
-        "characters": list(character_responses.characters.keys())
-    }
+    return {"status": "healthy", "service": "llm"}
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """Get a character response."""
+    """
+    Generate a character response to user message.
+    
+    This is a minimal implementation. For production use,
+    replace with actual LLM model inference.
+    """
     try:
-        response = character_responses.get_response(request.message, request.character)
+        logger.info("Received chat request", 
+                   character=request.character,
+                   message_length=len(request.message))
         
-        return ChatResponse(
-            response=response,
+        # Get character info
+        character_info = CHARACTERS.get(request.character, CHARACTERS["Luke Skywalker"])
+        
+        # Simulate processing time
+        await asyncio.sleep(0.1)
+        
+        # Generate placeholder response based on character
+        if request.character == "Darth Vader":
+            response_text = f"I sense your presence, young one. {request.message} is of no concern to me."
+        elif request.character == "Han Solo":
+            response_text = f"Look, kid, I don't have time for this. But since you asked about {request.message}, here's what I think."
+        else:  # Luke Skywalker
+            response_text = f"The Force is strong with you. Regarding {request.message}, I believe we must trust in our abilities."
+        
+        response = ChatResponse(
+            response=response_text,
             character=request.character,
-            model="character_responses"
+            confidence=0.85,
+            tokens_used=len(response_text.split())
         )
         
+        logger.info("Chat response generated", 
+                   character=response.character,
+                   response_length=len(response.response))
+        
+        return response
+        
     except Exception as e:
-        logger.error(f"Error generating response: {e}")
-        raise HTTPException(status_code=500, detail=f"Error generating response: {str(e)}")
+        logger.error("Chat generation failed", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Chat generation failed: {str(e)}")
 
-@app.get("/characters")
+@app.get("/characters", response_model=List[CharacterInfo])
 async def get_characters():
     """Get available characters."""
-    return {
-        "characters": list(character_responses.characters.keys()),
-        "count": len(character_responses.characters)
-    }
+    return [CharacterInfo(**char) for char in CHARACTERS.values()]
+
+@app.get("/characters/{character_name}", response_model=CharacterInfo)
+async def get_character(character_name: str):
+    """Get specific character information."""
+    if character_name not in CHARACTERS:
+        raise HTTPException(status_code=404, detail="Character not found")
+    
+    return CharacterInfo(**CHARACTERS[character_name])
 
 @app.get("/")
 async def root():
     """Root endpoint."""
     return {
-        "service": "Star Wars Chat - LLM Service",
+        "service": "LLM Service",
         "version": "1.0.0",
-        "model": "character_responses",
+        "status": "running",
         "endpoints": {
             "health": "/health",
             "chat": "/chat",

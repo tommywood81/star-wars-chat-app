@@ -95,7 +95,7 @@ class DockerDeployer:
         # Build the service
         build_command = [
             "docker", "build", 
-            "-f", config["dockerfile"], 
+            "-f", f"{config['context']}/{config['dockerfile']}", 
             "-t", config["tag"], 
             config["context"]
         ]
