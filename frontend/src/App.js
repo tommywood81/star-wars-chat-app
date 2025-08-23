@@ -56,7 +56,7 @@ function App() {
     try {
       // Step 1: Send audio to STT service
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'audio.wav');
+      formData.append('file', audioBlob, 'audio.wav');
       
       const sttResponse = await axios.post(`${process.env.REACT_APP_STT_URL || 'http://localhost:5001'}/transcribe`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
