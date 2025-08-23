@@ -65,9 +65,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_STT_URL=http://localhost:5001
-      - REACT_APP_TTS_URL=http://localhost:5002
-      - REACT_APP_LLM_URL=http://localhost:5003
+      - REACT_APP_STT_URL=http://star_wars_stt_service:5001
+      - REACT_APP_TTS_URL=http://star_wars_tts_service:5002
+      - REACT_APP_LLM_URL=http://star_wars_llm_service:5003
     depends_on:
       stt:
         condition: service_healthy

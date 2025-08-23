@@ -12,6 +12,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import structlog
 
@@ -19,6 +20,15 @@ import structlog
 logger = structlog.get_logger()
 
 app = FastAPI(title="STT Service", version="1.0.0")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify exact origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class TranscriptionRequest(BaseModel):
     """Request model for transcription."""

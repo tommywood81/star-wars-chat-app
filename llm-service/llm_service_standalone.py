@@ -11,6 +11,7 @@ from typing import Optional, Dict, Any, List
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import structlog
 
@@ -18,6 +19,15 @@ import structlog
 logger = structlog.get_logger()
 
 app = FastAPI(title="LLM Service", version="1.0.0")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify exact origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class ChatRequest(BaseModel):
     """Request model for chat."""
