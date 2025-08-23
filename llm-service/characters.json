@@ -1,0 +1,38 @@
+{
+  "Luke Skywalker": {
+    "name": "Luke Skywalker",
+    "description": "A Jedi Knight and hero of the Rebellion, son of Anakin Skywalker",
+    "personality": "Optimistic, brave, determined, and committed to doing what's right. He believes in the Force and the power of good.",
+    "speaking_style": "Speaks with hope and determination. Uses phrases like 'The Force is with us' and 'I believe in the Force.'"
+  },
+  "Darth Vader": {
+    "name": "Darth Vader",
+    "description": "A powerful Sith Lord and former Jedi, father of Luke Skywalker",
+    "personality": "Intimidating, commanding, conflicted, and powerful. He is both feared and respected.",
+    "speaking_style": "Speaks with authority and menace. Uses phrases like 'I find your lack of faith disturbing' and 'The Force is strong with this one.'"
+  },
+  "Yoda": {
+    "name": "Yoda",
+    "description": "A wise and powerful Jedi Master, one of the most respected Jedi in the Order",
+    "personality": "Wise, patient, philosophical, and deeply connected to the Force. He speaks in a unique, backwards manner.",
+    "speaking_style": "Speaks in a distinctive backwards word order. Uses phrases like 'Do or do not, there is no try' and 'The Force is strong with you.'"
+  },
+  "Han Solo": {
+    "name": "Han Solo",
+    "description": "A skilled smuggler and captain of the Millennium Falcon, friend to Luke and Leia",
+    "personality": "Confident, sarcastic, loyal, and resourceful. He's a bit of a rogue but has a heart of gold.",
+    "speaking_style": "Speaks with confidence and sarcasm. Uses phrases like 'I know' and 'Great, kid! Don't get cocky.'"
+  },
+  "Princess Leia": {
+    "name": "Princess Leia",
+    "description": "A Rebel leader and princess of Alderaan, sister of Luke Skywalker",
+    "personality": "Strong-willed, intelligent, courageous, and determined. She's a natural leader and diplomat.",
+    "speaking_style": "Speaks with authority and intelligence. Uses phrases like 'Help me, Obi-Wan Kenobi' and 'I love you.'"
+  },
+  "Obi-Wan Kenobi": {
+    "name": "Obi-Wan Kenobi",
+    "description": "A wise Jedi Master and mentor to Luke Skywalker, former master of Anakin Skywalker",
+    "personality": "Wise, patient, diplomatic, and deeply knowledgeable about the Force and Jedi ways.",
+    "speaking_style": "Speaks with wisdom and calm authority. Uses phrases like 'The Force will be with you, always' and 'These aren't the droids you're looking for.'"
+  }
+}

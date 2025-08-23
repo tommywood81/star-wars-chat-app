@@ -1,4 +1,4 @@
-# LLM Service Requirements - Simplified (Character Responses Only)
+# LLM Service Requirements - CPU-Only Phi-2 Implementation with RAG
 fastapi==0.104.1
 uvicorn==0.24.0
 pydantic==2.5.0
@@ -7,3 +7,12 @@ structlog==23.2.0
 python-multipart==0.0.6
 aiofiles==23.2.1
 requests==2.32.4
+# LLM dependencies (CPU only)
+llama-cpp-python==0.2.90
+# Database dependencies
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+# Embedding dependencies (CPU only) - use transformers directly instead of sentence-transformers
+transformers==4.35.0
+tokenizers==0.14.1
+numpy==1.24.3

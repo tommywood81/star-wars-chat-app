@@ -40,17 +40,45 @@ services:
   # LLM Service
   llm:
     build:
-      context: ./llm-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: llm-service/Dockerfile
     container_name: star_wars_llm_service
     ports:
       - "5003:5003"
     environment:
       - PYTHONPATH=/app
       - TEMP_DIR=/app/temp
+      - POSTGRES_HOST=star_wars_postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=star_wars_rag
+      - POSTGRES_USER=starwars_admin
+      - POSTGRES_PASSWORD=your_secure_password_123
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # PostgreSQL Database with pgvector
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: star_wars_postgres
+    environment:
+      - POSTGRES_DB=star_wars_rag
+      - POSTGRES_USER=starwars_admin
+      - POSTGRES_PASSWORD=your_secure_password_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U starwars_admin -d star_wars_rag"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -75,7 +103,12 @@ services:
         condition: service_healthy
       llm:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  postgres_data:
 
 networks:
   default:

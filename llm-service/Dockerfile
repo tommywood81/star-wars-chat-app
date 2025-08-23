@@ -5,23 +5,33 @@ FROM python:3.10-slim
 ENV CUDA_VISIBLE_DEVICES=""
 ENV PYTORCH_CUDA_ALLOC_CONF=""
 ENV TORCH_CUDA_ARCH_LIST=""
+ENV CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS"
+ENV FORCE_CMAKE=1
 
-# Install system dependencies
+# Install system dependencies including build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    build-essential \
+    cmake \
+    libopenblas-dev \
+    pkg-config \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
 # Copy requirements first for better caching
-COPY requirements-llm.txt .
+COPY llm-service/requirements-llm.txt .
 
 # Install Python dependencies (CPU only)
-RUN pip install --no-cache-dir -r requirements-llm.txt
+RUN pip install --no-cache-dir -r requirements-llm.txt && \
+    pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.1.0+cpu
 
-# Copy the standalone LLM service
-COPY llm_service_standalone.py /app/llm_service.py
+# Copy the standalone LLM service, characters file, and models
+COPY llm-service/llm_service_standalone.py /app/llm_service.py
+COPY llm-service/characters.json /app/characters.json
+COPY models /app/models
 
 # Create necessary directories
 RUN mkdir -p /app/temp /app/logs
