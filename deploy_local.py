@@ -19,25 +19,29 @@ class DockerDeployer:
         """Initialize the deployer with service configurations."""
         self.services = {
             "stt": {
-                "dockerfile": "Dockerfile.stt",
+                "context": "./stt-service",
+                "dockerfile": "Dockerfile",
                 "tag": "star-wars-stt:latest",
                 "port": 5001,
                 "description": "Speech-to-Text Service (Whisper)"
             },
             "tts": {
-                "dockerfile": "Dockerfile.tts.simple",  # Use the simple standalone version
-                "tag": "star-wars-tts:simple",
+                "context": "./tts-service",
+                "dockerfile": "Dockerfile",
+                "tag": "star-wars-tts:latest",
                 "port": 5002,
                 "description": "Text-to-Speech Service (gTTS)"
             },
             "llm": {
-                "dockerfile": "Dockerfile.llm",
+                "context": "./llm-service",
+                "dockerfile": "Dockerfile",
                 "tag": "star-wars-llm:latest",
                 "port": 5003,
                 "description": "LLM Service (Phi-2)"
             },
             "frontend": {
-                "dockerfile": "Dockerfile.frontend",
+                "context": "./frontend",
+                "dockerfile": "Dockerfile",
                 "tag": "star-wars-frontend:latest",
                 "port": 3000,
                 "description": "React Frontend"
@@ -93,7 +97,7 @@ class DockerDeployer:
             "docker", "build", 
             "-f", config["dockerfile"], 
             "-t", config["tag"], 
-            "."
+            config["context"]
         ]
         
         if force:
