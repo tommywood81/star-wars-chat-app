@@ -10,6 +10,7 @@ function App() {
   const [showExplainability, setShowExplainability] = useState(false);
   const [lastRequestData, setLastRequestData] = useState(null);
   const [lastLLMRequest, setLastLLMRequest] = useState(null);
+  const [lastLLMResponse, setLastLLMResponse] = useState(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
@@ -91,6 +92,9 @@ function App() {
       // Step 2: Send text to LLM service
       const llmResponse = await axios.post(`${process.env.REACT_APP_LLM_URL || 'http://localhost:5003'}/chat`, llmRequestData);
       
+      // Store the complete LLM response for RAG explainability
+      setLastLLMResponse(llmResponse.data);
+      
       const characterResponse = llmResponse.data.response;
       
       // Add character response
@@ -153,12 +157,15 @@ function App() {
       // Send text to LLM service
       const llmResponse = await axios.post(`${process.env.REACT_APP_LLM_URL || 'http://localhost:5003'}/chat`, requestData);
       
-      // Store request data for explainability
+      // Store request and response data for explainability
       setLastRequestData({
         ...requestData,
         response: llmResponse.data.response,
         llmResponse: llmResponse.data
       });
+      
+      // Store the complete LLM response for RAG explainability
+      setLastLLMResponse(llmResponse.data);
       
       const characterResponse = llmResponse.data.response;
       
@@ -299,6 +306,49 @@ function App() {
                      <div className="code-block">
                        <h4>Request Timestamp:</h4>
                        <pre>{lastLLMRequest.timestamp}</pre>
+                     </div>
+                   </div>
+                 )}
+
+                 {lastLLMResponse && lastLLMResponse.complete_prompt && (
+                   <div className="complete-prompt-section">
+                     <h3>📝 Complete Prompt Sent to LLM</h3>
+                     <p>This is the exact prompt that was sent to the Phi-2 model, including character context, RAG context, and your question:</p>
+                     <div className="code-block">
+                       <h4>Full Prompt:</h4>
+                       <pre>{lastLLMResponse.complete_prompt}</pre>
+                     </div>
+                     <div className="prompt-metadata">
+                       <p><strong>Prompt Length:</strong> {lastLLMResponse.metadata?.prompt_length || 0} characters</p>
+                       <p><strong>RAG Enabled:</strong> {lastLLMResponse.metadata?.rag_enabled ? 'Yes' : 'No'}</p>
+                     </div>
+                   </div>
+                 )}
+
+                 {lastLLMResponse && lastLLMResponse.rag_context && lastLLMResponse.rag_context.length > 0 && (
+                   <div className="rag-context-section">
+                     <h3>🎬 RAG Context - Movie Lines Retrieved</h3>
+                     <p>These are the exact Star Wars dialogue lines that were retrieved and included in the prompt above:</p>
+                     <div className="rag-context-list">
+                       {lastLLMResponse.rag_context.map((context, index) => (
+                         <div key={index} className="rag-context-item">
+                           <div className="rag-context-header">
+                             <span className="movie-title">{context.movie_title}</span>
+                             <span className="scene-info">{context.scene_info}</span>
+                           </div>
+                           <div className="rag-context-dialogue">
+                             <strong>Dialogue:</strong> "{context.dialogue}"
+                           </div>
+                           {context.cleaned_dialogue && context.cleaned_dialogue !== context.dialogue && (
+                             <div className="rag-context-cleaned">
+                               <strong>Cleaned:</strong> "{context.cleaned_dialogue}"
+                             </div>
+                           )}
+                         </div>
+                       ))}
+                     </div>
+                     <div className="rag-metadata">
+                       <p><strong>Total Context Lines:</strong> {lastLLMResponse.rag_context.length}</p>
                      </div>
                    </div>
                  )}

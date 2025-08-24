@@ -49,6 +49,9 @@ class ChatResponse(BaseModel):
     """Response model for character chat."""
     response: str
     character: str
+    rag_context: Optional[List[Dict[str, Any]]] = None
+    complete_prompt: Optional[str] = None
+    request_data: Optional[Dict[str, Any]] = None
     metadata: Dict[str, Any]
 
 class CharacterInfo(BaseModel):
@@ -70,7 +73,7 @@ class RAGLLMService:
         self.db_pool = None
         self._load_model()
         self._load_embedding_model()
-        asyncio.create_task(self._initialize_database())
+        # Database will be initialized on first use
         logger.info("RAG LLM service initialized")
     
     def _load_characters(self) -> Dict[str, Dict[str, str]]:
@@ -159,8 +162,12 @@ class RAGLLMService:
     
     async def _get_relevant_context(self, message: str, character: str, top_k: int = 6) -> List[Dict[str, Any]]:
         """Retrieve relevant context from the database using vector similarity."""
-        if not self.db_pool or not self.embedding_model:
+        if not self.embedding_model:
             return []
+        
+        # Initialize database if not already done
+        if not self.db_pool:
+            await self._initialize_database()
         
         try:
             # Generate embedding for the user message
@@ -200,7 +207,7 @@ class RAGLLMService:
                 LIMIT $3
                 """
                 
-                rows = await conn.fetch(query, character_id, message_embedding.tolist(), top_k)
+                rows = await conn.fetch(query, character_id, str(message_embedding.tolist()), top_k)
                 
                 context_lines = []
                 for row in rows:
@@ -219,7 +226,7 @@ class RAGLLMService:
             return []
     
     def _generate_response(self, message: str, character: str, context_lines: List[Dict[str, Any]] = None,
-                          max_tokens: int = 200, temperature: float = 0.7) -> str:
+                          max_tokens: int = 200, temperature: float = 0.7) -> Dict[str, Any]:
         """Generate a response using the loaded model with RAG context."""
         if not self.model:
             raise RuntimeError("Model not loaded")
@@ -258,7 +265,11 @@ Speaking Style: {self.characters.get(character, {}).get('speaking_style', '')}
             if not generated_text:
                 raise RuntimeError("Model generated empty response")
             
-            return generated_text
+            return {
+                "response": generated_text,
+                "prompt": prompt,
+                "context_lines": context_lines or []
+            }
             
         except Exception as e:
             raise RuntimeError(f"Model generation failed: {e}")
@@ -276,22 +287,37 @@ Speaking Style: {self.characters.get(character, {}).get('speaking_style', '')}
             context_lines = await self._get_relevant_context(message, character)
             
             # Generate response with context
-            response = self._generate_response(message, character, context_lines, max_tokens, temperature)
+            generation_result = self._generate_response(message, character, context_lines, max_tokens, temperature)
             
             processing_time = time.time() - start_time
             
+            # Extract response and prompt from generation result
+            response_text = generation_result["response"]
+            complete_prompt = generation_result["prompt"]
+            
             return {
-                "response": response,
+                "response": response_text,
                 "character": character,
+                "rag_context": context_lines,  # Add RAG context for explainability
+                "complete_prompt": complete_prompt,  # Add the complete prompt sent to the model
+                "request_data": {
+                    "message": message,
+                    "character": character,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                    "context": context
+                },
                 "metadata": {
                     "model": "phi-2",
                     "model_path": self.model_path,
                     "processing_time": processing_time,
                     "max_tokens": max_tokens,
                     "temperature": temperature,
-                    "tokens_generated": len(response.split()),
+                    "tokens_generated": len(response_text.split()),
                     "context_lines_retrieved": len(context_lines),
-                    "rag_enabled": True
+                    "rag_enabled": True,
+                    "prompt_length": len(complete_prompt),
+                    "character_info": self.characters.get(character, {})
                 }
             }
             
@@ -340,6 +366,9 @@ async def chat(request: ChatRequest):
         return ChatResponse(
             response=result["response"],
             character=result["character"],
+            rag_context=result.get("rag_context", []),
+            complete_prompt=result.get("complete_prompt", ""),
+            request_data=result.get("request_data", {}),
             metadata=result["metadata"]
         )
         

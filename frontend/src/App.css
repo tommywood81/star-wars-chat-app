@@ -427,6 +427,102 @@
   font-size: 1.3rem;
 }
 
+.rag-context-section {
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.rag-context-section h3 {
+  color: #ffd700;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+}
+
+.rag-context-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 15px 0;
+}
+
+.rag-context-item {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 15px;
+  margin: 10px 0;
+  border-left: 4px solid #ffd700;
+}
+
+.rag-context-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.movie-title {
+  color: #ffd700;
+  font-weight: bold;
+}
+
+.scene-info {
+  color: #ccc;
+  font-style: italic;
+}
+
+.rag-context-dialogue {
+  color: #fff;
+  margin: 8px 0;
+  line-height: 1.4;
+}
+
+.rag-context-cleaned {
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+.rag-metadata {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 15px;
+}
+
+.rag-metadata p {
+  margin: 5px 0;
+  color: #ccc;
+}
+
+.complete-prompt-section {
+  background: rgba(0, 255, 136, 0.1);
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.complete-prompt-section h3 {
+  color: #00ff88;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+}
+
+.prompt-metadata {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 15px;
+}
+
+.prompt-metadata p {
+  margin: 5px 0;
+  color: #ccc;
+}
+
 .explainability-section p {
   margin-bottom: 20px;
   line-height: 1.6;

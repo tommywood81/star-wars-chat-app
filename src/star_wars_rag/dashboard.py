@@ -205,10 +205,10 @@ if 'last_response_data' not in st.session_state:
 #     st.session_state.tts_enabled = False
 
 # API configuration
-API_BASE_URL = "http://star-wars-api:8000"
+API_BASE_URL = "http://star_wars_llm_service:5003"
 
 def check_api_health():
-    """Check if the API is running."""
+    """Check if the LLM service is running."""
     try:
         response = requests.get(f"{API_BASE_URL}/health", timeout=5)
         return response.status_code == 200
@@ -216,18 +216,18 @@ def check_api_health():
         return False
 
 def get_available_characters():
-    """Get available characters from API - only top 15 by line count."""
+    """Get available characters from LLM service."""
     try:
         response = requests.get(f"{API_BASE_URL}/characters", timeout=5)
         if response.status_code == 200:
             data = response.json()
-            characters = data.get('characters', [])
-            # Sort by dialogue count and get top 15
-            sorted_chars = sorted(characters, key=lambda x: x.get('dialogue_count', 0), reverse=True)
-            return [char['name'] for char in sorted_chars[:15]]
+            return data.get('characters', [])
+        else:
+            st.error(f"Failed to get characters: {response.status_code}")
+            return []
     except Exception as e:
-        st.error(f"Error fetching characters: {e}")
-    return []
+        st.error(f"Error getting characters: {e}")
+        return []
 
 def get_character_suggestions(character_name):
     """Get custom quick start suggestions for a specific character."""
@@ -280,13 +280,12 @@ def get_character_suggestions(character_name):
     ])
 
 def chat_with_character(message, character):
-    """Send chat message to API."""
+    """Send chat message to LLM service."""
     try:
         payload = {
-            "character": character,
             "message": message,
-            "session_id": st.session_state.session_id,
-            "max_tokens": 150,
+            "character": character,
+            "max_tokens": 200,
             "temperature": 0.7
         }
         
@@ -294,10 +293,10 @@ def chat_with_character(message, character):
         if response.status_code == 200:
             return response.json()
         else:
-            st.error(f"API Error: {response.status_code}")
+            st.error(f"LLM Service Error: {response.status_code} - {response.text}")
             return None
     except Exception as e:
-        st.error(f"Error communicating with API: {e}")
+        st.error(f"Error communicating with LLM service: {e}")
         return None
 
 def display_info_modal():
@@ -332,34 +331,96 @@ def display_info_modal():
         """)
 
 def display_explainability_panel(response_data):
-    """Display the full prompt sent to the LLM for explainability."""
-    if st.button("🔍 Show Full Prompt", key="explainability_btn", help="Click to see the complete prompt sent to the LLM"):
-        if response_data and 'conversation_metadata' in response_data:
-            metadata = response_data['conversation_metadata']
-            full_prompt = metadata.get('full_prompt', 'No prompt data available')
+    """Display comprehensive explainability information for the LLM interaction."""
+    if st.button("🔍 Show Explainability", key="explainability_btn", help="Click to see all data sent to and from the LLM service"):
+        if response_data:
+            # Create tabs for different sections
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(["📤 Request Data", "📚 Retrieved Context", "🤖 Full Prompt", "📊 Model Output", "⚙️ Technical Details"])
             
-            st.markdown("### 🔍 Full Prompt Sent to LLM")
-            st.markdown("**This is the exact prompt that was sent to the Phi-2 model:**")
+            with tab1:
+                st.markdown("### 📤 Data Sent to LLM Service Container")
+                if 'request_data' in response_data:
+                    request_data = response_data['request_data']
+                    st.markdown("**Request Parameters:**")
+                    st.json(request_data)
+                else:
+                    st.warning("No request data available")
             
-            # Display the full prompt in a code block for better readability
-            st.code(full_prompt, language="text")
-            
-            # Also show the retrieved context separately
-            if 'retrieved_context' in metadata:
-                st.markdown("### 📚 Retrieved Context")
-                st.markdown("**These are the 6 most relevant dialogue lines used as context:**")
-                context = metadata['retrieved_context']
-                for i, item in enumerate(context, 1):
-                    char = item.get('character', 'Unknown')
-                    dialogue = item.get('dialogue', '')
-                    movie = item.get('movie', '')
-                    similarity = item.get('similarity', 0)
+            with tab2:
+                st.markdown("### 📚 Retrieved Context (Matching Movie Lines)")
+                if 'rag_context' in response_data and response_data['rag_context']:
+                    context = response_data['rag_context']
+                    st.markdown(f"**Found {len(context)} relevant dialogue lines:**")
                     
-                    st.markdown(f"**{i}.** **{char}** (from {movie}, similarity: {similarity:.3f})")
-                    st.markdown(f"   *\"{dialogue}\"*")
-                    st.markdown("")
+                    for i, item in enumerate(context, 1):
+                        with st.expander(f"Line {i}: {item.get('movie_title', 'Unknown Movie')}"):
+                            st.markdown(f"**Dialogue:** \"{item.get('dialogue', '')}\"")
+                            st.markdown(f"**Movie:** {item.get('movie_title', 'Unknown')}")
+                            st.markdown(f"**Scene Info:** {item.get('scene_info', 'N/A')}")
+                            if 'cleaned_dialogue' in item:
+                                st.markdown(f"**Cleaned Version:** \"{item['cleaned_dialogue']}\"")
+                else:
+                    st.info("No context lines retrieved")
+            
+            with tab3:
+                st.markdown("### 🤖 Complete Prompt Sent to Phi-2 Model")
+                if 'complete_prompt' in response_data:
+                    full_prompt = response_data['complete_prompt']
+                    st.markdown("**This is the exact prompt that was sent to the Phi-2 model:**")
+                    st.code(full_prompt, language="text")
+                    
+                    # Show prompt statistics
+                    st.markdown("**Prompt Statistics:**")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Characters", len(full_prompt))
+                    with col2:
+                        st.metric("Words", len(full_prompt.split()))
+                    with col3:
+                        st.metric("Lines", len(full_prompt.split('\n')))
+                else:
+                    st.warning("No prompt data available")
+            
+            with tab4:
+                st.markdown("### 📊 Model Output")
+                if 'response' in response_data:
+                    response = response_data['response']
+                    st.markdown("**Generated Response:**")
+                    st.markdown(f"*\"{response}\"*")
+                    
+                    # Show response statistics
+                    st.markdown("**Response Statistics:**")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Characters", len(response))
+                    with col2:
+                        st.metric("Words", len(response.split()))
+                    with col3:
+                        st.metric("Sentences", len([s for s in response.split('.') if s.strip()]))
+                else:
+                    st.warning("No response data available")
+            
+            with tab5:
+                st.markdown("### ⚙️ Technical Details")
+                if 'metadata' in response_data:
+                    metadata = response_data['metadata']
+                    st.markdown("**Model Information:**")
+                    st.json(metadata)
+                    
+                    # Show performance metrics
+                    if 'processing_time' in metadata:
+                        st.markdown("**Performance Metrics:**")
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Processing Time", f"{metadata['processing_time']:.3f}s")
+                        with col2:
+                            st.metric("Tokens Generated", metadata.get('tokens_generated', 0))
+                        with col3:
+                            st.metric("Context Lines", metadata.get('context_lines_retrieved', 0))
+                else:
+                    st.warning("No metadata available")
         else:
-            st.warning("No prompt data available. Try sending a message first to see the explainability.")
+            st.warning("No response data available. Try sending a message first to see the explainability.")
 
 # Voice features will be added later
 # def voice_input():
@@ -422,9 +483,9 @@ def main():
     # Info button
     display_info_modal()
     
-    # Check API health
+    # Check LLM service health
     if not check_api_health():
-        st.error("🚨 API is not responding. Please ensure the backend is running.")
+        st.error("🚨 LLM service is not responding. Please ensure the LLM service container is running.")
         st.stop()
     
     # Character selection
@@ -447,7 +508,7 @@ def main():
                 st.rerun()
     
     else:
-        st.warning("No characters available. Please check the API connection.")
+        st.warning("No characters available. Please check the LLM service connection.")
         st.stop()
     
     # Voice controls (coming soon)
