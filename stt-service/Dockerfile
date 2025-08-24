@@ -21,6 +21,7 @@ COPY requirements-stt.txt .
 
 # Install Python dependencies (CPU only, no cache)
 RUN pip install --no-cache-dir fastapi==0.104.1 uvicorn==0.24.0 pydantic==2.5.0 structlog==23.2.0 python-multipart==0.0.6 && \
+    pip install --no-cache-dir "numpy<2.0.0" && \
     pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.1.0+cpu torchaudio==2.1.0+cpu && \
     pip install --no-cache-dir openai-whisper==20231117
 
