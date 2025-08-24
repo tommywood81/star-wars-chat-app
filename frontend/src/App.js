@@ -7,6 +7,9 @@ function App() {
   const [selectedCharacter, setSelectedCharacter] = useState('Luke Skywalker');
   const [messages, setMessages] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showExplainability, setShowExplainability] = useState(false);
+  const [lastRequestData, setLastRequestData] = useState(null);
+  const [lastLLMRequest, setLastLLMRequest] = useState(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
@@ -68,11 +71,25 @@ function App() {
       const userMessage = { type: 'user', text: transcription, timestamp: new Date() };
       setMessages(prev => [...prev, userMessage]);
       
-      // Step 2: Send text to LLM service
-      const llmResponse = await axios.post(`${process.env.REACT_APP_LLM_URL || 'http://localhost:5003'}/chat`, {
+      // Prepare LLM request data
+      const llmRequestData = {
         message: transcription,
         character: selectedCharacter
+      };
+      
+      // Store the exact request being sent to LLM
+      setLastLLMRequest({
+        url: `${process.env.REACT_APP_LLM_URL || 'http://localhost:5003'}/chat`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        payload: llmRequestData,
+        timestamp: new Date().toISOString()
       });
+      
+      // Step 2: Send text to LLM service
+      const llmResponse = await axios.post(`${process.env.REACT_APP_LLM_URL || 'http://localhost:5003'}/chat`, llmRequestData);
       
       const characterResponse = llmResponse.data.response;
       
@@ -115,10 +132,32 @@ function App() {
     setIsProcessing(true);
     
     try {
-      // Send text to LLM service
-      const llmResponse = await axios.post(`${process.env.REACT_APP_LLM_URL || 'http://localhost:5003'}/chat`, {
+      // Prepare request data for explainability
+      const requestData = {
         message: text,
-        character: selectedCharacter
+        character: selectedCharacter,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Store the exact request being sent to LLM
+      setLastLLMRequest({
+        url: `${process.env.REACT_APP_LLM_URL || 'http://localhost:5003'}/chat`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        payload: requestData,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Send text to LLM service
+      const llmResponse = await axios.post(`${process.env.REACT_APP_LLM_URL || 'http://localhost:5003'}/chat`, requestData);
+      
+      // Store request data for explainability
+      setLastRequestData({
+        ...requestData,
+        response: llmResponse.data.response,
+        llmResponse: llmResponse.data
       });
       
       const characterResponse = llmResponse.data.response;
@@ -152,6 +191,12 @@ function App() {
       <header className="header">
         <h1 className="title">Star Wars Chat</h1>
         <p className="subtitle">Chat with your favorite Star Wars characters</p>
+        <button 
+          className="explainability-button"
+          onClick={() => setShowExplainability(true)}
+        >
+          🔍 Explainability
+        </button>
       </header>
 
       <div className="chat-container">
@@ -215,6 +260,100 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* Explainability Modal */}
+      {showExplainability && (
+        <div className="modal-overlay" onClick={() => setShowExplainability(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>🔍 System Explainability</h2>
+              <button 
+                className="close-button"
+                onClick={() => setShowExplainability(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+                         <div className="modal-body">
+               <div className="explainability-section">
+                 {lastLLMRequest && (
+                   <div className="llm-request-section">
+                     <h3>📤 Last Request Sent to LLM Service</h3>
+                     <div className="code-block">
+                       <h4>Request URL:</h4>
+                       <pre>{lastLLMRequest.url}</pre>
+                     </div>
+                     <div className="code-block">
+                       <h4>Request Method:</h4>
+                       <pre>{lastLLMRequest.method}</pre>
+                     </div>
+                     <div className="code-block">
+                       <h4>Request Headers:</h4>
+                       <pre>{JSON.stringify(lastLLMRequest.headers, null, 2)}</pre>
+                     </div>
+                     <div className="code-block">
+                       <h4>Request Payload (What gets sent to LLM):</h4>
+                       <pre>{JSON.stringify(lastLLMRequest.payload, null, 2)}</pre>
+                     </div>
+                     <div className="code-block">
+                       <h4>Request Timestamp:</h4>
+                       <pre>{lastLLMRequest.timestamp}</pre>
+                     </div>
+                   </div>
+                 )}
+
+                 <h3>🤖 How It Works</h3>
+                 <p>This Star Wars Chat uses a sophisticated AI pipeline with multiple specialized services:</p>
+                
+                <div className="service-explanation">
+                  <h4>🎤 Speech-to-Text (STT)</h4>
+                  <p>Uses OpenAI's Whisper base model to convert your voice to text. The model is optimized for speed and accuracy.</p>
+                  
+                  <h4>🧠 Large Language Model (LLM)</h4>
+                  <p>Uses Microsoft's Phi-2 model with RAG (Retrieval-Augmented Generation) to generate responses. The system:</p>
+                  <ul>
+                    <li>Searches a vector database of Star Wars dialogue</li>
+                    <li>Finds the most relevant context from the original trilogy</li>
+                    <li>Generates responses in the character's style</li>
+                  </ul>
+                  
+                  <h4>🔊 Text-to-Speech (TTS)</h4>
+                  <p>Uses gTTS (Google Text-to-Speech) to convert the AI response back to speech.</p>
+                </div>
+
+                {lastRequestData && (
+                  <div className="request-data">
+                    <h3>📤 Last Request to LLM</h3>
+                    <div className="code-block">
+                      <h4>Request Payload:</h4>
+                      <pre>{JSON.stringify(lastRequestData, null, 2)}</pre>
+                    </div>
+                    
+                    {lastRequestData.llmResponse && (
+                      <div className="code-block">
+                        <h4>LLM Response Data:</h4>
+                        <pre>{JSON.stringify(lastRequestData.llmResponse, null, 2)}</pre>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="technical-details">
+                  <h3>⚙️ Technical Details</h3>
+                  <ul>
+                    <li><strong>STT Model:</strong> Whisper Base (~74MB) - CPU optimized</li>
+                    <li><strong>LLM Model:</strong> Microsoft Phi-2 (2.7B parameters)</li>
+                    <li><strong>Vector Database:</strong> PostgreSQL with pgvector</li>
+                    <li><strong>TTS Engine:</strong> Google Text-to-Speech</li>
+                    <li><strong>Architecture:</strong> Microservices with Docker containers</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

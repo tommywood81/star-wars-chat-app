@@ -31,6 +31,26 @@
   margin: 10px 0 0 0;
 }
 
+.explainability-button {
+  background: linear-gradient(45deg, #ff6b35, #f7931e);
+  border: none;
+  border-radius: 25px;
+  padding: 12px 24px;
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 15px;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
+.explainability-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+  background: linear-gradient(45deg, #f7931e, #ff6b35);
+}
+
 .chat-container {
   width: 100%;
   max-width: 800px;
@@ -316,5 +336,204 @@
   
   .message-content {
     max-width: 85%;
+  }
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 90%;
+  max-height: 90%;
+  width: 800px;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 20px 20px 0 0;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #ffd700;
+  font-size: 1.8rem;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.modal-body {
+  padding: 30px;
+  color: #fff;
+}
+
+.explainability-section h3 {
+  color: #ffd700;
+  margin-bottom: 15px;
+  font-size: 1.4rem;
+}
+
+.llm-request-section {
+  background: rgba(255, 107, 53, 0.1);
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid rgba(255, 107, 53, 0.3);
+}
+
+.llm-request-section h3 {
+  color: #ff6b35;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+}
+
+.explainability-section p {
+  margin-bottom: 20px;
+  line-height: 1.6;
+  color: #ccc;
+}
+
+.service-explanation {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.service-explanation h4 {
+  color: #ff6b35;
+  margin: 15px 0 10px 0;
+  font-size: 1.2rem;
+}
+
+.service-explanation ul {
+  margin: 10px 0;
+  padding-left: 20px;
+}
+
+.service-explanation li {
+  margin: 5px 0;
+  color: #ccc;
+}
+
+.request-data {
+  margin: 30px 0;
+}
+
+.code-block {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 10px;
+  padding: 15px;
+  margin: 15px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.code-block h4 {
+  color: #ffd700;
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+}
+
+.code-block pre {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+  padding: 15px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  color: #00ff88;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.technical-details {
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 15px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.technical-details h3 {
+  color: #ffd700;
+  margin-bottom: 15px;
+}
+
+.technical-details ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.technical-details li {
+  margin: 8px 0;
+  color: #ccc;
+}
+
+.technical-details strong {
+  color: #ffd700;
+}
+
+/* Responsive modal */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    max-height: 95%;
+  }
+  
+  .modal-header {
+    padding: 15px 20px;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.4rem;
+  }
+  
+  .modal-body {
+    padding: 20px;
+  }
+  
+  .code-block pre {
+    font-size: 0.75rem;
   }
 }
