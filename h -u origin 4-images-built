@@ -1,5 +1,0 @@
-[33m143a086[m[33m ([m[1;36mHEAD -> [m[1;32m4-images-built[m[33m, [m[1;31morigin/tts-image-built[m[33m, [m[1;32mtts-image-built[m[33m)[m Fix Docker build path issue in deploy_local.py and TTS image built successfully
-[33m9346da7[m[33m ([m[1;31morigin/deploy-local-rebuilt[m[33m, [m[1;32mdeploy-local-rebuilt[m[33m)[m fix: update deploy_local.py for new service-level Docker structure
-[33mdfb6162[m[33m ([m[1;31morigin/tests-passing[m[33m, [m[1;32mtests-passing[m[33m)[m feat: production-quality codebase with comprehensive improvements
-[33me0c9c5c[m[33m ([m[1;31morigin/tts-working[m[33m, [m[1;32mtts-working[m[33m)[m Complete TTS working implementation with CORS support and optimized services
-[33m060f454[m[33m ([m[1;32mmain[m[33m)[m fix: add build tools to Dockerfiles for ML library compilation

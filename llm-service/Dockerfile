@@ -28,9 +28,13 @@ COPY llm-service/requirements-llm.txt .
 RUN pip install --no-cache-dir -r requirements-llm.txt && \
     pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.1.0+cpu
 
-# Copy the standalone LLM service, characters file, and models
+# Copy the standalone LLM service
 COPY llm-service/llm_service_standalone.py /app/llm_service.py
+
+# Copy characters file from parent directory
 COPY llm-service/characters.json /app/characters.json
+
+# Copy models from parent directory
 COPY models /app/models
 
 # Create necessary directories

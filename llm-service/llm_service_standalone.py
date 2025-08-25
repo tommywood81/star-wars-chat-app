@@ -94,10 +94,22 @@ class RAGLLMService:
         try:
             import llama_cpp
             
-            model_path = Path("models/phi-2.Q4_K_M.gguf")
+            # Try multiple possible model paths
+            possible_paths = [
+                Path("models/phi-2.Q4_K_M.gguf"),
+                Path("/app/models/phi-2.Q4_K_M.gguf"),
+                Path("../models/phi-2.Q4_K_M.gguf"),
+                Path("llm-service/models/phi-2.Q4_K_M.gguf")
+            ]
             
-            if not model_path.exists():
-                raise RuntimeError(f"Model not found at {model_path}")
+            model_path = None
+            for path in possible_paths:
+                if path.exists():
+                    model_path = path
+                    break
+            
+            if not model_path:
+                raise RuntimeError(f"Model not found. Tried paths: {[str(p) for p in possible_paths]}")
             
             logger.info(f"Loading Phi-2 model from {model_path}")
             

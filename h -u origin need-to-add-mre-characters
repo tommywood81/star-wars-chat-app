@@ -1,5 +1,0 @@
-[33med62e26[m[33m ([m[1;36mHEAD -> [m[1;32mneed-to-add-mre-characters[m[33m)[m Add RAG system with authentic Star Wars dialogue and enhanced explainability feature
-[33mdf8cccb[m[33m ([m[1;31morigin/meed-to-add-the-movie-lines-explainability[m[33m, [m[1;32mmeed-to-add-the-movie-lines-explainability[m[33m)[m Add enhanced explainability showing exact LLM request data
-[33mbee3e1c[m[33m ([m[1;31morigin/services-running[m[33m, [m[1;32mservices-running[m[33m)[m Fix STT service NumPy compatibility and ensure all services are running
-[33m4ebf4e7[m[33m ([m[1;31morigin/stt-whisper-now-using-base-size[m[33m, [m[1;32mstt-whisper-now-using-base-size[m[33m)[m Optimize STT service to use Whisper base model for faster deployment
-[33me46c5f1[m[33m ([m[1;31morigin/4-containers-working-together[m[33m, [m[1;32m4-containers-working-together[m[33m)[m Fix Phi-2 model loading and get all 4 containers working together
